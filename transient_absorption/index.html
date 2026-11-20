@@ -1,0 +1,3136 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Espectroscopia de Absorção Transiente Ultrarrápida (Pump-Probe) | Guia Interativo</title>
+  <meta name="description" content="Guia científico interativo sobre Espectroscopia de Absorção Transiente de Femtossegundos (Pump-Probe): bancada óptica com ângulo mágico, GSB/SE/ESA, simulador 2D ΔA(λ, τ) com IRF e chirp, e Análise Global (DADS vs. EADS)." />
+
+  <!-- ===================================================================== -->
+  <!-- OPEN GRAPH / COMPARTILHAMENTO (WhatsApp, LinkedIn, Slack, Twitter)    -->
+  <!-- Dica: Salve um print (1200x630 px) em ./assets/og-preview.png no seu  -->
+  <!-- repositório GitHub Pages e ajuste o caminho/URL abaixo se desejar.    -->
+  <!-- ===================================================================== -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Espectroscopia de Absorção Transiente Ultrarrápida (Pump-Probe)" />
+  <meta property="og:description" content="Simulador interativo de bancada óptica, Jablonski, mapa 2D ΔA(λ, τ) com IRF/Chirp, cenários ICT/ESIPT/ISC e Análise Global (DADS vs. EADS)." />
+  <meta property="og:image" content="./assets/og-preview.png" />
+
+  <!-- Favicon SVG inline minimalista (pulso laser + mapa espectral) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23a78bfa'/%3E%3Cstop offset='50%25' stop-color='%2322d3ee'/%3E%3Cstop offset='100%25' stop-color='%23fbbf24'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%23060911'/%3E%3Crect x='2' y='2' width='60' height='60' rx='12' fill='none' stroke='%231e293b' stroke-width='2'/%3E%3Cpath d='M8 34 H17 L23 14 L31 50 L39 22 L45 38 L49 34 H56' fill='none' stroke='url(%23g)' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+
+  <!-- Google Fonts: Space Grotesk (títulos), Inter (texto), JetBrains Mono (equações/eixos) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+          },
+          colors: {
+            lab: {
+              950: '#060911',
+              900: '#0b1120',
+              850: '#10182b',
+              800: '#162038',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Estilo global de laboratório de fotônica */
+    html, body {
+      background-color: #060911;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+
+    .bg-photonics-mesh {
+      background-image:
+        radial-gradient(circle at 14% 8%, rgba(167, 139, 250, 0.13), transparent 36%),
+        radial-gradient(circle at 86% 14%, rgba(34, 211, 238, 0.11), transparent 38%),
+        radial-gradient(circle at 50% 62%, rgba(52, 211, 153, 0.05), transparent 44%),
+        radial-gradient(circle at 75% 92%, rgba(251, 191, 36, 0.07), transparent 42%),
+        linear-gradient(rgba(148, 163, 184, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.035) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 48px 48px, 48px 48px;
+    }
+
+    .glass-panel {
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.78) 0%, rgba(11, 17, 32, 0.88) 100%);
+      border: 1px solid rgba(30, 41, 59, 0.85);
+      box-shadow: 0 22px 50px -26px rgba(0, 0, 0, 0.82), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(12px);
+    }
+
+    .spectrum-line {
+      background: linear-gradient(90deg, #a78bfa 0%, #22d3ee 28%, #34d399 54%, #fbbf24 78%, #fb7185 100%);
+    }
+
+    /* Sliders customizados de alta precisão */
+    input[type="range"].lab-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 9999px;
+      background: rgba(51, 65, 85, 0.85);
+      outline: none;
+    }
+    input[type="range"].lab-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 17px;
+      height: 17px;
+      border-radius: 9999px;
+      background: #22d3ee;
+      border: 2px solid #060911;
+      box-shadow: 0 0 12px rgba(34, 211, 238, 0.65);
+      cursor: pointer;
+      transition: transform 0.14s ease, background-color 0.14s ease;
+    }
+    input[type="range"].lab-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.16);
+      background: #67e8f9;
+    }
+    input[type="range"].lab-slider::-moz-range-thumb {
+      width: 17px;
+      height: 17px;
+      border-radius: 9999px;
+      background: #22d3ee;
+      border: 2px solid #060911;
+      box-shadow: 0 0 12px rgba(34, 211, 238, 0.65);
+      cursor: pointer;
+    }
+
+    input[type="range"].lab-slider-amber::-webkit-slider-thumb {
+      background: #fbbf24;
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.65);
+    }
+    input[type="range"].lab-slider-emerald::-webkit-slider-thumb {
+      background: #34d399;
+      box-shadow: 0 0 12px rgba(52, 211, 153, 0.65);
+    }
+    input[type="range"].lab-slider-violet::-webkit-slider-thumb {
+      background: #a78bfa;
+      box-shadow: 0 0 12px rgba(167, 139, 250, 0.65);
+    }
+
+    /* Frações matemáticas limpas em HTML/CSS */
+    .math-frac {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      vertical-align: middle;
+      margin: 0 0.18rem;
+      line-height: 1.15;
+    }
+    .math-frac > span:first-child {
+      border-bottom: 1px solid currentColor;
+      padding: 0 0.2rem 0.1rem;
+    }
+    .math-frac > span:last-child {
+      padding: 0.1rem 0.2rem 0;
+    }
+
+    /* Transições suaves nos elementos do diagrama SVG */
+    .jab-transition {
+      transition: opacity 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease;
+    }
+  </style>
+</head>
+<body class="bg-photonics-mesh font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-100">
+
+  <!-- ===================================================================== -->
+  <!-- BARRA DE NAVEGAÇÃO FIXA SUPERIOR                                      -->
+  <!-- ===================================================================== -->
+  <header class="sticky top-0 z-50 border-b border-slate-800/80 bg-[#060911]/88 backdrop-blur-md">
+    <div class="h-[2px] w-full spectrum-line opacity-85"></div>
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+      <a href="#principio" class="flex items-center gap-3 group min-w-0">
+        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/20 via-cyan-500/20 to-amber-500/20 border border-slate-700/80">
+          <svg class="h-5 w-5 text-cyan-400 group-hover:text-cyan-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2 12h3.5l2.5-7 3.2 14 2.8-9.5 1.8 2.5H22" />
+          </svg>
+        </div>
+        <div class="truncate">
+          <span class="font-display text-sm font-bold tracking-tight text-white block leading-tight">fs-TA Interativo</span>
+          <span class="font-mono text-[10px] uppercase tracking-widest text-slate-400">Espectroscopia Pump–Probe</span>
+        </div>
+      </a>
+
+      <!-- Navegação Desktop -->
+      <nav class="hidden md:flex items-center gap-1 text-xs lg:text-sm font-medium text-slate-300">
+        <a href="#principio" class="rounded-lg px-3 py-2 hover:bg-slate-800/75 hover:text-white transition-colors">Princípio</a>
+        <a href="#bancada" class="rounded-lg px-3 py-2 hover:bg-slate-800/75 hover:text-white transition-colors">Bancada Óptica</a>
+        <a href="#anatomia" class="rounded-lg px-3 py-2 hover:bg-slate-800/75 hover:text-white transition-colors">Anatomia &Delta;A</a>
+        <a href="#simulador" class="rounded-lg px-3 py-2 hover:bg-slate-800/75 hover:text-white transition-colors">Simulador 2D</a>
+        <a href="#global" class="rounded-lg px-3 py-2 hover:bg-slate-800/75 hover:text-white transition-colors">Escalas &amp; Global</a>
+      </nav>
+
+      <!-- Botão Mobile -->
+      <button id="mobile-menu-btn" aria-label="Abrir menu" class="md:hidden rounded-xl p-2.5 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Menu Mobile -->
+    <div id="mobile-menu" class="hidden md:hidden border-t border-slate-800/80 bg-[#060911]/95 px-4 py-3">
+      <div class="flex flex-col gap-1 text-sm font-medium text-slate-300">
+        <a href="#principio" class="mobile-link rounded-lg px-3 py-2.5 hover:bg-slate-800/80 hover:text-white">1. Princípio &amp; Equação &Delta;A</a>
+        <a href="#bancada" class="mobile-link rounded-lg px-3 py-2.5 hover:bg-slate-800/80 hover:text-white">2. Bancada Óptica Interativa</a>
+        <a href="#anatomia" class="mobile-link rounded-lg px-3 py-2.5 hover:bg-slate-800/80 hover:text-white">3. Anatomia &Delta;A &amp; Jablonski</a>
+        <a href="#simulador" class="mobile-link rounded-lg px-3 py-2.5 hover:bg-slate-800/80 hover:text-white">4. Simulador 2D &Delta;A(&lambda;, &tau;)</a>
+        <a href="#global" class="mobile-link rounded-lg px-3 py-2.5 hover:bg-slate-800/80 hover:text-white">5. Escalas &amp; DADS vs. EADS</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
+    <!-- =================================================================== -->
+    <!-- SEÇÃO 1: HERO & PRINCÍPIO FUNDAMENTAL (EQUAÇÃO ΔA + CHOPPER f/2)    -->
+    <!-- =================================================================== -->
+    <section id="principio" class="pt-12 pb-16 sm:pt-18 sm:pb-24">
+      <div class="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-start">
+        <!-- Coluna Esquerda: Título, Contextualização e Visual Animado Pump+Probe -->
+        <div class="lg:col-span-6 space-y-6">
+          <div class="inline-flex items-center gap-2 rounded-full border border-violet-400/30 bg-violet-500/10 px-3.5 py-1.5 font-mono text-[11px] text-violet-300">
+            <span class="h-2 w-2 rounded-full bg-violet-400 animate-pulse"></span>
+            Fotofísica Ultrarrápida &bull; Resolução de Femtossegundos (10<sup>&minus;15</sup> s)
+          </div>
+
+          <h1 class="font-display text-3xl sm:text-5xl font-bold tracking-tight text-white leading-[1.1]">
+            Espectroscopia de <span class="bg-gradient-to-r from-violet-400 via-cyan-300 to-amber-300 bg-clip-text text-transparent">Absorção Transiente</span> Ultrarrápida
+          </h1>
+
+          <p class="text-sm sm:text-base text-slate-300 leading-relaxed">
+            Reações fotofísicas primárias — como transferência de próton (ESIPT), transferência intramolecular de carga (ICT), solvatação e cruzamento intersistema — ocorrem entre dezenas de femtossegundos e centenas de picossegundos, ordens de grandeza além da resposta de qualquer eletrônica. A técnica <strong class="text-white">pump–probe</strong> transforma a própria velocidade da luz em um cronômetro óptico de precisão sub-picossegundo.
+          </p>
+
+          <!-- Visual Animado dos Pulsos Pump e Probe -->
+          <div class="glass-panel rounded-2xl p-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-mono text-[11px] uppercase tracking-wider text-slate-400">Cronômetro Óptico</span>
+              <span class="font-mono text-[11px] text-cyan-300">c &approx; 0,30 &mu;m / fs</span>
+            </div>
+            <div class="rounded-xl bg-[#060911] border border-slate-800/90 p-2">
+              <canvas id="hero-canvas" class="w-full h-24 block"></canvas>
+            </div>
+          </div>
+
+          <!-- Botões de Ação -->
+          <div class="flex flex-wrap gap-3">
+            <a href="#simulador" class="inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-cyan-300 transition-all shadow-lg shadow-cyan-500/20">
+              Abrir Simulador 2D
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+            <a href="#bancada" class="inline-flex items-center gap-2 rounded-xl border border-slate-700/90 bg-slate-900/70 px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-800 hover:border-slate-600 transition-all">
+              Explorar Bancada Óptica
+            </a>
+          </div>
+        </div>
+
+        <!-- Coluna Direita: Derivação Passo a Passo de ΔA + Chopper f/2 + Resumo Sinais -->
+        <div class="lg:col-span-6 space-y-4">
+          <!-- Cartão de Derivação Passo a Passo -->
+          <div class="glass-panel rounded-2xl p-5 sm:p-6 relative overflow-hidden">
+            <div class="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl pointer-events-none"></div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <span class="font-mono text-xs uppercase tracking-wider text-cyan-300 font-semibold">Derivação da Absorbância Diferencial</span>
+              <span class="rounded-md bg-slate-800/90 border border-slate-700/70 px-2 py-0.5 font-mono text-[10px] text-slate-300">Lei de Beer–Lambert</span>
+            </div>
+
+            <!-- Passo a Passo Matemático -->
+            <div class="rounded-xl bg-[#060911] border border-slate-800 p-4 space-y-3 overflow-x-auto">
+              <!-- Passo 1 -->
+              <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-mono text-slate-300">
+                <span class="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">1</span>
+                <span>&Delta;A(&lambda;, &tau;)</span>
+                <span class="text-slate-500">=</span>
+                <span class="text-violet-300">A<sub>on</sub>(&lambda;, &tau;)</span>
+                <span class="text-slate-500">&minus;</span>
+                <span class="text-slate-200">A<sub>off</sub>(&lambda;)</span>
+              </div>
+
+              <!-- Passo 2 -->
+              <div class="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm font-mono text-slate-300">
+                <span class="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">2</span>
+                <span class="text-slate-500">=</span>
+                <span>&minus;log<sub>10</sub></span>
+                <span class="text-slate-500">(</span>
+                <span class="math-frac text-xs">
+                  <span class="text-violet-300">I<sub>on</sub></span>
+                  <span class="text-rose-400 line-through decoration-rose-400/80">I<sub>0</sub></span>
+                </span>
+                <span class="text-slate-500">)</span>
+                <span class="text-slate-500">&minus;</span>
+                <span class="text-slate-500">[&minus;log<sub>10</sub>(</span>
+                <span class="math-frac text-xs">
+                  <span class="text-slate-200">I<sub>off</sub></span>
+                  <span class="text-rose-400 line-through decoration-rose-400/80">I<sub>0</sub></span>
+                </span>
+                <span class="text-slate-500">)]</span>
+              </div>
+
+              <div class="h-px w-full bg-slate-800/90"></div>
+
+              <!-- Passo 3 (Resultado Final) -->
+              <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                <div class="flex items-center gap-2 font-mono text-sm sm:text-base font-bold text-cyan-300">
+                  <span class="rounded bg-cyan-500/20 border border-cyan-500/30 px-1.5 py-0.5 text-[10px] text-cyan-200">Final</span>
+                  <span>&Delta;A(&lambda;, &tau;) = &minus;log<sub>10</sub></span>
+                  <span class="text-cyan-400/70">(</span>
+                  <span class="math-frac text-xs sm:text-sm">
+                    <span class="text-violet-300">I<sub>on</sub>(&lambda;, &tau;)</span>
+                    <span class="text-slate-100">I<sub>off</sub>(&lambda;)</span>
+                  </span>
+                  <span class="text-cyan-400/70">)</span>
+                </div>
+                <span class="font-mono text-[10px] text-slate-400">Unidade: mOD (10<sup>&minus;3</sup>)</span>
+              </div>
+            </div>
+
+            <!-- Caixa Explicativa: Cancelamento de I0 e Chopper em f/2 -->
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3.5">
+                <div class="flex items-center gap-2 mb-1.5">
+                  <span class="flex h-5 w-5 items-center justify-center rounded-md bg-rose-500/15 font-mono text-[11px] font-bold text-rose-300">a</span>
+                  <h3 class="text-xs font-semibold text-white">Cancelamento exato de I<sub>0</sub></h3>
+                </div>
+                <p class="text-[11.5px] text-slate-300 leading-relaxed">
+                  Como <span class="font-mono text-slate-200">log(I<sub>on</sub>/I<sub>0</sub>) &minus; log(I<sub>off</sub>/I<sub>0</sub>) = log(I<sub>on</sub>/I<sub>off</sub>)</span>, a intensidade incidente <span class="font-mono text-rose-300">I<sub>0</sub>(&lambda;)</span> e a resposta espectral do detector cancelam-se rigorosamente — basta comparar a prova transmitida com e sem bombeio.
+                </p>
+              </div>
+              <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3.5">
+                <div class="flex items-center gap-2 mb-1.5">
+                  <span class="flex h-5 w-5 items-center justify-center rounded-md bg-violet-500/15 font-mono text-[11px] font-bold text-violet-300">b</span>
+                  <h3 class="text-xs font-semibold text-white">Por que o Chopper opera a f/2?</h3>
+                </div>
+                <p class="text-[11.5px] text-slate-300 leading-relaxed">
+                  Sincronizado à <strong class="text-violet-200">metade da taxa de repetição do laser (f/2)</strong>, o chopper bloqueia exatamente um pulso de bombeio a cada dois, alternando <span class="font-mono">I<sub>on</sub></span> e <span class="font-mono">I<sub>off</sub></span> pulso a pulso e eliminando derivas lentas de potência do laser.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cartões Resumo ΔA > 0 e ΔA < 0 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="font-mono text-xs font-bold text-amber-300">&Delta;A &gt; 0 (Sinal Positivo)</span>
+                <span class="font-mono text-[10px] text-amber-200/80">I<sub>on</sub> &lt; I<sub>off</sub></span>
+              </div>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                A amostra excitada absorve <em>mais</em> luz de prova. Corresponde à <strong class="text-amber-200">Absorção de Estado Excitado (ESA)</strong> (S<sub>1</sub>&rarr;S<sub>n</sub>, T<sub>1</sub>&rarr;T<sub>n</sub>) ou à formação de <strong class="text-amber-200">fotoprodutos transientes</strong>.
+              </p>
+            </div>
+            <div class="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 p-4">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="font-mono text-xs font-bold text-cyan-300">&Delta;A &lt; 0 (Sinal Negativo)</span>
+                <span class="font-mono text-[10px] text-cyan-200/80">I<sub>on</sub> &gt; I<sub>off</sub></span>
+              </div>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                Mais luz atinge o espectrômetro com o pump ligado. Origina-se do <strong class="text-cyan-200">Ground-State Bleaching (GSB)</strong> e da <strong class="text-emerald-300">Emissão Estimulada (SE)</strong>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SEÇÃO 2: BANCADA ÓPTICA INTERATIVA (CANVAS 2D ANIMADO)              -->
+    <!-- =================================================================== -->
+    <section id="bancada" class="py-14 sm:py-20 border-t border-slate-800/80">
+      <div class="mb-8 max-w-3xl">
+        <span class="font-mono text-xs uppercase tracking-widest text-violet-400">Seção 02 &bull; Instrumentação de Bancada</span>
+        <h2 class="mt-2 font-display text-2xl sm:text-3xl font-bold text-white">Bancada Óptica Pump–Probe, Chopper f/2 e Ângulo Mágico</h2>
+        <p class="mt-3 text-sm sm:text-base text-slate-300 leading-relaxed">
+          Um pulso de femtossegundos é dividido entre o braço de excitação (<strong class="text-violet-300">Pump</strong>, via OPA e chopper em <span class="font-mono text-violet-200">f/2</span>) e o braço de prova (<strong class="text-cyan-300">Probe</strong>, passando pelo estágio de atraso motorizado, cristal de safira gerador de luz branca WLC e polarizador no <strong class="text-emerald-300">ângulo mágico de 54,7&deg;</strong>).
+        </p>
+      </div>
+
+      <div class="glass-panel rounded-2xl p-4 sm:p-6">
+        <!-- Canvas da Bancada -->
+        <div class="relative rounded-xl bg-[#05080f] border border-slate-800/90 overflow-hidden">
+          <canvas id="bench-canvas" class="w-full h-[330px] sm:h-[420px] lg:h-[450px] block"></canvas>
+          <div class="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+            <span id="bench-badge" class="rounded-lg bg-slate-950/90 border border-slate-700/80 px-2.5 py-1 font-mono text-[11px] text-cyan-300 backdrop-blur">
+              &tau; = +2,00 ps &bull; Chopper Auto (f/2)
+            </span>
+            <span id="bench-shot-badge" class="rounded-lg bg-violet-500/20 border border-violet-400/40 px-2.5 py-1 font-mono text-[11px] font-bold text-violet-200 backdrop-blur">
+              Pulso atual: PUMP ON &rarr; I<sub>on</sub>
+            </span>
+          </div>
+        </div>
+
+        <!-- Painel de Controles da Bancada -->
+        <div class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-12">
+          <!-- Controle de Atraso τ -->
+          <div class="lg:col-span-5 rounded-xl bg-[#060911]/90 border border-slate-800 p-4 flex flex-col justify-between">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <label for="bench-tau-slider" class="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                Atraso Temporal (&tau;)
+              </label>
+              <div class="flex items-center gap-1.5">
+                <button id="bench-play-btn" class="rounded-lg bg-cyan-500/15 border border-cyan-500/40 px-2.5 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/25 transition-colors">
+                  &#10074;&#10074; Pausar
+                </button>
+                <button data-btau="0" class="bench-preset rounded-lg bg-slate-800 border border-slate-700 px-2 py-1 font-mono text-[11px] text-slate-200 hover:bg-slate-700">t = 0</button>
+              </div>
+            </div>
+
+            <input id="bench-tau-slider" type="range" min="0" max="1000" value="380" class="lab-slider w-full" />
+
+            <div class="mt-2 flex justify-between font-mono text-[10px] text-slate-400">
+              <span>&minus;2,0 ps</span>
+              <span class="text-violet-300 font-semibold">0 ps</span>
+              <span>+2 ps</span>
+              <span>+15 ps</span>
+              <span>+50,0 ps</span>
+            </div>
+
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <button data-btau="-1.2" class="bench-preset rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1 font-mono text-[10.5px] text-slate-300 hover:border-cyan-500/50 hover:text-cyan-200">&minus;1,2 ps</button>
+              <button data-btau="0.35" class="bench-preset rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1 font-mono text-[10.5px] text-slate-300 hover:border-emerald-500/50 hover:text-emerald-200">+350 fs</button>
+              <button data-btau="2.0" class="bench-preset rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1 font-mono text-[10.5px] text-slate-300 hover:border-cyan-500/50 hover:text-cyan-200">+2,0 ps</button>
+              <button data-btau="25.0" class="bench-preset rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1 font-mono text-[10.5px] text-slate-300 hover:border-amber-500/50 hover:text-amber-200">+25,0 ps</button>
+            </div>
+          </div>
+
+          <!-- Leituras em Tempo Real: τ e Δx = c·τ/2 -->
+          <div class="lg:col-span-3 rounded-xl bg-[#060911]/90 border border-slate-800 p-4 flex flex-col justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Estágio Motorizado</span>
+            <div class="my-2 space-y-2">
+              <div>
+                <div class="text-[11px] text-slate-400">Atraso &tau;</div>
+                <div id="bench-tau-val" class="font-mono text-lg font-bold text-cyan-300">+2,00 ps</div>
+              </div>
+              <div>
+                <div class="text-[11px] text-slate-400">Deslocamento &Delta;x = c&middot;&tau;/2</div>
+                <div class="flex items-baseline gap-2 flex-wrap">
+                  <span id="bench-dx-um" class="font-mono text-base font-bold text-amber-300">+300 &mu;m</span>
+                  <span id="bench-dx-mm" class="font-mono text-xs text-slate-400">(+0,300 mm)</span>
+                </div>
+              </div>
+            </div>
+            <p class="text-[10.5px] text-slate-400 border-t border-slate-800 pt-2 leading-snug">
+              Ida e volta no retrorrefletor dobra o caminho óptico: <strong class="text-slate-200">1 ps &harr; 150 &mu;m</strong>.
+            </p>
+          </div>
+
+          <!-- Controle do Chopper (Auto f/2 | Pump ON | Pump OFF) & Ângulo Mágico -->
+          <div class="lg:col-span-4 rounded-xl bg-[#060911]/90 border border-slate-800 p-4 flex flex-col justify-between gap-3">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Chopper Óptico (f/2)</span>
+                <span class="font-mono text-[10px] text-violet-300">Modulação de Pump</span>
+              </div>
+              <div class="grid grid-cols-3 gap-1.5 rounded-xl bg-slate-900 p-1 border border-slate-800">
+                <button data-chopper="auto" class="chopper-mode-btn rounded-lg py-1.5 font-mono text-[11px] font-semibold bg-violet-500 text-slate-950 transition-all">Auto (f/2)</button>
+                <button data-chopper="on" class="chopper-mode-btn rounded-lg py-1.5 font-mono text-[11px] font-semibold text-slate-300 hover:text-white transition-all">Pump ON</button>
+                <button data-chopper="off" class="chopper-mode-btn rounded-lg py-1.5 font-mono text-[11px] font-semibold text-slate-300 hover:text-white transition-all">Pump OFF</button>
+              </div>
+            </div>
+
+            <!-- Destaque Interativo: Ângulo Mágico 54,7° -->
+            <div class="border-t border-slate-800 pt-2.5">
+              <button id="magic-angle-btn" class="w-full rounded-xl border border-emerald-400/50 bg-emerald-500/15 px-3 py-2 text-left transition-all hover:bg-emerald-500/25 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span id="magic-dot" class="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
+                  <span class="font-mono text-xs font-bold text-emerald-200">Ângulo Mágico (54,7&deg;)</span>
+                </div>
+                <span id="magic-tag" class="rounded bg-emerald-500/25 px-1.5 py-0.5 font-mono text-[10px] text-emerald-200">DESTACADO</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Painel de Contexto do Ângulo Mágico (54,7°) -->
+        <div id="magic-angle-panel" class="mt-4 rounded-xl border border-emerald-500/35 bg-emerald-950/25 px-4 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-xs font-bold text-emerald-300">Por que ajustar o polarizador de prova a &theta; = 54,7&deg; em relação ao bombeio?</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              O feixe de bombeio linearmente polarizado excita preferencialmente moléculas cujo momento de dipolo de transição está alinhado ao campo elétrico (<strong class="text-white">fotoseleção</strong>). Conforme as moléculas giram no solvente, o sinal transiente mistura decaimento populacional com despolarização rotacional (anisotropia). Como <span class="font-mono text-emerald-200">P<sub>2</sub>(cos &theta;) = &frac12;(3cos&sup2;&theta; &minus; 1) = 0</span> exatamente em <strong class="text-emerald-200">&theta; = arccos(1/&radic;3) &approx; 54,7&deg;</strong>, essa geometria cancela a contribuição rotacional e isola a <strong class="text-white">dinâmica pura de população</strong>.
+            </p>
+          </div>
+          <div class="shrink-0 rounded-lg bg-[#060911]/90 border border-emerald-500/30 px-3.5 py-2.5 font-mono text-xs text-emerald-200 text-center">
+            3 cos&sup2;(54,7&deg;) &minus; 1 = 0
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SEÇÃO 3: ANATOMIA DO SINAL ΔA & DIAGRAMA DE JABLONSKI SINCRONIZADO  -->
+    <!-- =================================================================== -->
+    <section id="anatomia" class="py-14 sm:py-20 border-t border-slate-800/80">
+      <div class="mb-8 max-w-3xl">
+        <span class="font-mono text-xs uppercase tracking-widest text-cyan-400">Seção 03 &bull; Sobreposição Espectral</span>
+        <h2 class="mt-2 font-display text-2xl sm:text-3xl font-bold text-white">Anatomia do Sinal &Delta;A e Diagrama de Jablonski</h2>
+        <p class="mt-3 text-sm sm:text-base text-slate-300 leading-relaxed">
+          O espectro experimental registrado pelo detector é a <strong class="text-white">soma algébrica</strong> de três contribuições simultâneas: <span class="font-mono text-cyan-300">&Delta;A(&lambda;) = GSB + SE + ESA</span>. Ajuste as amplitudes individuais e deslize a posição espectral da ESA (<span class="font-mono text-amber-300">&lambda;<sub>ESA</sub></span>) sobre a SE ou o GSB para observar o mascaramento e o cancelamento de sinais negativos.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <!-- Esquerda: Diagrama de Jablonski SVG Sincronizado -->
+        <div class="lg:col-span-5 glass-panel rounded-2xl p-5 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-display text-sm font-bold text-white">Diagrama de Jablonski (S<sub>0</sub>, S<sub>1</sub>, S<sub>n</sub>)</h3>
+            <span class="font-mono text-[10.5px] text-slate-400">Espessura = Amplitude</span>
+          </div>
+
+          <div class="flex items-center justify-center py-2">
+            <svg id="jablonski-svg" viewBox="0 0 380 315" class="w-full max-w-[380px] h-auto select-none">
+              <defs>
+                <marker id="m-violet" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#a78bfa" />
+                </marker>
+                <marker id="m-cyan" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#22d3ee" />
+                </marker>
+                <marker id="m-emerald" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#34d399" />
+                </marker>
+                <marker id="m-amber" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#fbbf24" />
+                </marker>
+                <marker id="m-slate" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b" />
+                </marker>
+              </defs>
+
+              <!-- Eixo de Energia -->
+              <line x1="24" y1="292" x2="24" y2="20" stroke="#475569" stroke-width="1.5" marker-end="url(#m-slate)" />
+              <text x="14" y="156" fill="#94a3b8" font-size="11" font-family="JetBrains Mono, monospace" transform="rotate(-90 14 156)" text-anchor="middle">Energia</text>
+
+              <!-- Estado Sn -->
+              <line x1="220" y1="36" x2="352" y2="36" stroke="#475569" stroke-width="1" stroke-dasharray="3 3" />
+              <line x1="220" y1="46" x2="352" y2="46" stroke="#475569" stroke-width="1" stroke-dasharray="3 3" />
+              <line x1="220" y1="56" x2="352" y2="56" stroke="#cbd5e1" stroke-width="2.5" />
+              <text x="358" y="60" fill="#f1f5f9" font-size="13" font-weight="700" font-family="JetBrains Mono, monospace">S<tspan dy="3" font-size="9">n</tspan></text>
+
+              <!-- Estado S1 -->
+              <line x1="52" y1="138" x2="352" y2="138" stroke="#475569" stroke-width="1" stroke-dasharray="3 3" />
+              <line x1="52" y1="148" x2="352" y2="148" stroke="#475569" stroke-width="1" stroke-dasharray="3 3" />
+              <line x1="52" y1="158" x2="352" y2="158" stroke="#475569" stroke-width="1" stroke-dasharray="3 3" />
+              <line x1="52" y1="170" x2="352" y2="170" stroke="#f1f5f9" stroke-width="2.5" />
+              <text x="358" y="174" fill="#f1f5f9" font-size="13" font-weight="700" font-family="JetBrains Mono, monospace">S<tspan dy="3" font-size="9">1</tspan></text>
+
+              <!-- Estado S0 -->
+              <line x1="52" y1="254" x2="352" y2="254" stroke="#475569" stroke-width="1" stroke-dasharray="3 3" />
+              <line x1="52" y1="264" x2="352" y2="264" stroke="#475569" stroke-width="1" stroke-dasharray="3 3" />
+              <line x1="52" y1="274" x2="352" y2="274" stroke="#475569" stroke-width="1" stroke-dasharray="3 3" />
+              <line x1="52" y1="284" x2="352" y2="284" stroke="#f1f5f9" stroke-width="2.5" />
+              <text x="358" y="288" fill="#f1f5f9" font-size="13" font-weight="700" font-family="JetBrains Mono, monospace">S<tspan dy="3" font-size="9">0</tspan></text>
+
+              <!-- Pump (fixo) -->
+              <g>
+                <line x1="80" y1="282" x2="80" y2="146" stroke="#a78bfa" stroke-width="2.6" marker-end="url(#m-violet)" />
+                <text x="80" y="304" fill="#c4b5fd" font-size="10.5" font-weight="600" font-family="JetBrains Mono, monospace" text-anchor="middle">Pump</text>
+                <path d="M 85 144 Q 95 150 90 156 Q 100 162 96 168" fill="none" stroke="#94a3b8" stroke-width="1.3" stroke-dasharray="2 2" />
+              </g>
+
+              <!-- Seta GSB (S0 -> S1 depletada) -->
+              <g id="svg-gsb-group" class="jab-transition">
+                <line id="svg-gsb-line" x1="142" y1="282" x2="142" y2="161" stroke="#22d3ee" stroke-width="3" stroke-dasharray="6 4" marker-end="url(#m-cyan)" />
+                <circle cx="142" cy="284" r="5" fill="#060911" stroke="#22d3ee" stroke-width="2" />
+                <text x="142" y="304" fill="#22d3ee" font-size="11" font-weight="700" font-family="JetBrains Mono, monospace" text-anchor="middle">GSB</text>
+                <text x="142" y="130" fill="#67e8f9" font-size="9.5" font-family="JetBrains Mono, monospace" text-anchor="middle">&Delta;A &lt; 0</text>
+              </g>
+
+              <!-- Seta SE (S1 -> S0) -->
+              <g id="svg-se-group" class="jab-transition">
+                <line id="svg-se-line" x1="214" y1="172" x2="214" y2="262" stroke="#34d399" stroke-width="3" marker-end="url(#m-emerald)" />
+                <circle cx="214" cy="170" r="4.5" fill="#34d399" />
+                <text x="214" y="304" fill="#34d399" font-size="11" font-weight="700" font-family="JetBrains Mono, monospace" text-anchor="middle">SE</text>
+                <text x="214" y="158" fill="#6ee7b7" font-size="9.5" font-family="JetBrains Mono, monospace" text-anchor="middle">&Delta;A &lt; 0</text>
+              </g>
+
+              <!-- Seta ESA (S1 -> Sn) -->
+              <g id="svg-esa-group" class="jab-transition">
+                <line id="svg-esa-line" x1="292" y1="168" x2="292" y2="59" stroke="#fbbf24" stroke-width="3" marker-end="url(#m-amber)" />
+                <circle cx="292" cy="170" r="4.5" fill="#fbbf24" />
+                <text x="292" y="189" fill="#fbbf24" font-size="11" font-weight="700" font-family="JetBrains Mono, monospace" text-anchor="middle">ESA</text>
+                <text x="292" y="29" fill="#fde68a" font-size="9.5" font-family="JetBrains Mono, monospace" text-anchor="middle">&Delta;A &gt; 0</text>
+              </g>
+            </svg>
+          </div>
+
+          <!-- Atalhos Didáticos de Mascaramento -->
+          <div class="space-y-2.5">
+            <div class="flex flex-wrap gap-1.5">
+              <button data-anat-preset="default" class="anat-preset rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 font-mono text-[10.5px] text-slate-200 hover:border-cyan-400/60 hover:text-cyan-200 transition-colors">Padrão</button>
+              <button data-anat-preset="mask-se" class="anat-preset rounded-lg border border-amber-500/35 bg-amber-500/10 px-2.5 py-1.5 font-mono text-[10.5px] text-amber-200 hover:bg-amber-500/20 transition-colors">ESA mascara SE</button>
+              <button data-anat-preset="mask-gsb" class="anat-preset rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2.5 py-1.5 font-mono text-[10.5px] text-cyan-200 hover:bg-cyan-500/20 transition-colors">ESA sobre GSB</button>
+            </div>
+            <div id="anatomy-insight" class="rounded-xl bg-[#060911]/90 border border-slate-800 p-3 text-xs text-slate-300 leading-relaxed">
+              Use os controles à direita ou clique em <strong class="text-amber-300">ESA mascara SE</strong> para ver como uma absorção de estado excitado intensa oculta completamente o sinal negativo da emissão estimulada.
+            </div>
+          </div>
+        </div>
+
+        <!-- Direita: Gráfico ΔA(λ) + Sliders de Amplitude e Posição λ_ESA -->
+        <div class="lg:col-span-7 glass-panel rounded-2xl p-5 flex flex-col justify-between gap-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="font-display text-sm font-bold text-white">Soma Algébrica: &Delta;A(&lambda;) = GSB + SE + ESA</h3>
+              <p class="text-xs text-slate-400">Tracejadas: contribuições individuais &bull; Branca sólida: sinal total medido</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 font-mono text-[10.5px] text-slate-400">
+              <span class="flex items-center gap-1.5"><span class="inline-block h-0.5 w-4 bg-white"></span>Total</span>
+              <span class="flex items-center gap-1.5"><span class="inline-block h-0.5 w-3.5 bg-cyan-400"></span>GSB</span>
+              <span class="flex items-center gap-1.5"><span class="inline-block h-0.5 w-3.5 bg-emerald-400"></span>SE</span>
+              <span class="flex items-center gap-1.5"><span class="inline-block h-0.5 w-3.5 bg-amber-400"></span>ESA</span>
+            </div>
+          </div>
+
+          <!-- Canvas do Espectro de Anatomia -->
+          <div class="rounded-xl bg-[#05080f] border border-slate-800/90 p-1.5">
+            <canvas id="anatomy-canvas" class="w-full h-[270px] sm:h-[300px] block"></canvas>
+          </div>
+
+          <!-- 4 Controles Deslizantes: Amp GSB, Amp SE, Amp ESA e λ_ESA -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 rounded-xl bg-[#060911]/90 border border-slate-800 p-4">
+            <!-- Amplitude GSB -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-xs font-mono">
+                <label for="amp-gsb-slider" class="text-cyan-300 font-semibold">Amplitude GSB (405 nm)</label>
+                <span id="amp-gsb-val" class="text-slate-200">&minus;34 mOD</span>
+              </div>
+              <input id="amp-gsb-slider" type="range" min="0" max="50" value="34" class="lab-slider w-full" />
+            </div>
+
+            <!-- Amplitude SE -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-xs font-mono">
+                <label for="amp-se-slider" class="text-emerald-300 font-semibold">Amplitude SE (510 nm)</label>
+                <span id="amp-se-val" class="text-slate-200">&minus;28 mOD</span>
+              </div>
+              <input id="amp-se-slider" type="range" min="0" max="50" value="28" class="lab-slider lab-slider-emerald w-full" />
+            </div>
+
+            <!-- Amplitude ESA -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-xs font-mono">
+                <label for="amp-esa-slider" class="text-amber-300 font-semibold">Amplitude ESA</label>
+                <span id="amp-esa-val" class="text-slate-200">+42 mOD</span>
+              </div>
+              <input id="amp-esa-slider" type="range" min="0" max="60" value="42" class="lab-slider lab-slider-amber w-full" />
+            </div>
+
+            <!-- Posição λ_ESA -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-xs font-mono">
+                <label for="pos-esa-slider" class="text-amber-200 font-semibold">Posição &lambda;<sub>ESA</sub></label>
+                <span id="pos-esa-val" class="text-amber-300 font-bold">560 nm</span>
+              </div>
+              <input id="pos-esa-slider" type="range" min="380" max="640" value="560" class="lab-slider lab-slider-amber w-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SEÇÃO 4: SIMULADOR INTERATIVO 2D ΔA(λ, τ)                           -->
+    <!-- =================================================================== -->
+    <section id="simulador" class="py-14 sm:py-20 border-t border-slate-800/80">
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-5 mb-6">
+        <div class="max-w-2xl">
+          <span class="font-mono text-xs uppercase tracking-widest text-amber-400">Seção 04 &bull; Laboratório Virtual Completo</span>
+          <h2 class="mt-2 font-display text-2xl sm:text-3xl font-bold text-white">Simulador Interativo 2D &Delta;A(&lambda;, &tau;)</h2>
+          <p class="mt-2.5 text-sm sm:text-base text-slate-300 leading-relaxed">
+            Explore três dinâmicas fotofísicas reais, ajuste a largura temporal do pulso (<strong class="text-violet-300">IRF</strong>), ligue o <strong class="text-rose-300">chirp do contínuo de luz branca</strong> e alterne entre escalas linear e híbrida lin–log.
+          </p>
+        </div>
+
+        <!-- Abas dos 3 Cenários Moleculares -->
+        <div class="flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-slate-900/95 border border-slate-800 self-start lg:self-auto">
+          <button data-scen="ict" class="scen-tab rounded-lg px-3.5 py-2 text-xs font-semibold transition-all bg-cyan-400 text-slate-950 shadow">
+            1. ICT &amp; Relaxação
+          </button>
+          <button data-scen="esipt" class="scen-tab rounded-lg px-3.5 py-2 text-xs font-semibold transition-all text-slate-300 hover:text-white hover:bg-slate-800">
+            2. ESIPT (E* &rarr; K*)
+          </button>
+          <button data-scen="isc" class="scen-tab rounded-lg px-3.5 py-2 text-xs font-semibold transition-all text-slate-300 hover:text-white hover:bg-slate-800">
+            3. ISC (S<sub>1</sub> &rarr; T<sub>1</sub>)
+          </button>
+        </div>
+      </div>
+
+      <!-- Faixa de Descrição do Cenário Ativo -->
+      <div class="mb-5 rounded-xl border border-slate-800 bg-slate-900/65 px-4 py-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <p id="scen-desc" class="text-xs sm:text-sm text-slate-300 leading-relaxed"></p>
+        <div id="scen-badges" class="flex flex-wrap gap-1.5 shrink-0"></div>
+      </div>
+
+      <!-- Painel Avançado de Controles de Bancada -->
+      <div class="glass-panel rounded-2xl p-4 sm:p-5 mb-6 space-y-4">
+        <!-- Linha 1: Controles Experimentais (Escala, IRF, Chirp, Play/Pause, Guias) -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center pb-4 border-b border-slate-800/80">
+          <!-- Alternador de Escala Temporal -->
+          <div class="md:col-span-4 space-y-1.5">
+            <span class="text-[11px] font-mono uppercase tracking-wider text-slate-400 block">Escala do Eixo Temporal</span>
+            <div class="grid grid-cols-2 gap-1 rounded-xl bg-[#060911] p-1 border border-slate-800">
+              <button data-scale="hybrid" class="scale-btn rounded-lg py-1.5 px-2 font-mono text-[11px] font-semibold bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 transition-all">Híbrido Lin–Log</button>
+              <button data-scale="linear" class="scale-btn rounded-lg py-1.5 px-2 font-mono text-[11px] font-semibold text-slate-400 hover:text-white border border-transparent transition-all">Linear (0–50 ps)</button>
+            </div>
+          </div>
+
+          <!-- Slider de IRF (30 a 250 fs) -->
+          <div class="md:col-span-4 space-y-1.5">
+            <div class="flex justify-between items-center text-xs">
+              <label for="sim-irf-slider" class="font-medium text-violet-300">IRF / Largura do Pulso (FWHM)</label>
+              <span id="sim-irf-label" class="font-mono font-bold text-violet-200">120 fs</span>
+            </div>
+            <input id="sim-irf-slider" type="range" min="30" max="250" step="5" value="120" class="lab-slider lab-slider-violet w-full" />
+            <div class="flex justify-between font-mono text-[10px] text-slate-500">
+              <span>30 fs (NOPA)</span>
+              <span>120 fs</span>
+              <span>250 fs (OPA)</span>
+            </div>
+          </div>
+
+          <!-- Chirp ON/OFF + Play/Pause -->
+          <div class="md:col-span-4 flex flex-wrap items-center md:justify-end gap-2">
+            <button id="sim-chirp-btn" class="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-[#060911] px-3.5 py-2 text-xs font-semibold text-slate-300 hover:border-rose-400/60 hover:text-rose-200 transition-all">
+              <span id="chirp-dot" class="h-2 w-2 rounded-full bg-slate-500"></span>
+              <span>Chirp WLC: <strong id="chirp-state-txt">OFF</strong></span>
+            </button>
+
+            <button id="sim-play-btn" class="inline-flex items-center gap-1.5 rounded-xl bg-amber-400/20 border border-amber-400/50 px-3.5 py-2 text-xs font-semibold text-amber-200 hover:bg-amber-400/30 transition-all">
+              <span id="sim-play-icon">&#9654;</span>
+              <span id="sim-play-txt">Play &tau;</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Linha 2: Sliders de Posição da Mira (τ e λ) + Guias Abs/Fluor -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+          <div class="md:col-span-5 space-y-1">
+            <div class="flex justify-between text-xs">
+              <label for="sim-tau-slider" class="text-slate-300">Atraso &tau; (Corte Espectral Horizontal)</label>
+              <span id="sim-tau-label" class="font-mono font-bold text-cyan-300">+0,60 ps</span>
+            </div>
+            <input id="sim-tau-slider" type="range" min="0" max="1000" value="350" class="lab-slider w-full" />
+          </div>
+
+          <div class="md:col-span-5 space-y-1">
+            <div class="flex justify-between text-xs">
+              <label for="sim-wl-slider" class="text-slate-300">Comprimento de Onda &lambda; (Traço Cinético Vertical)</label>
+              <span id="sim-wl-label" class="font-mono font-bold text-amber-300">535 nm</span>
+            </div>
+            <input id="sim-wl-slider" type="range" min="350" max="750" step="1" value="535" class="lab-slider lab-slider-amber w-full" />
+          </div>
+
+          <div class="md:col-span-2 flex md:justify-end">
+            <label class="inline-flex items-center gap-2 rounded-xl bg-[#060911] border border-slate-800 px-3 py-2 text-xs text-slate-300 cursor-pointer select-none hover:border-slate-700">
+              <input id="sim-guides-cb" type="checkbox" checked class="accent-cyan-400 rounded" />
+              <span>Guias Abs/Fl</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grade dos 3 Gráficos Sincronizados -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Mapa 2D ΔA(λ, τ) -->
+        <div class="lg:col-span-6 glass-panel rounded-2xl p-4 sm:p-5 flex flex-col">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <h3 class="font-display text-sm font-bold text-white">1. Mapa 2D de Calor &Delta;A(&lambda;, &tau;)</h3>
+              <p id="map-scale-subtitle" class="text-[11px] text-slate-400">Híbrido: linear (&minus;0,5 a 2 ps) | log (2 a 500 ps)</p>
+            </div>
+            <div class="rounded-lg bg-[#060911] border border-slate-800 px-2.5 py-1 font-mono text-xs">
+              <span class="text-slate-400">&Delta;A = </span>
+              <span id="sim-da-val" class="font-bold text-amber-300">+28,4 mOD</span>
+            </div>
+          </div>
+
+          <div class="relative rounded-xl bg-[#05080f] border border-slate-800/90 p-1.5 flex-1">
+            <canvas id="map2d-canvas" class="w-full h-[360px] sm:h-[430px] block cursor-crosshair touch-none"></canvas>
+          </div>
+          <p class="mt-2.5 text-[11px] text-slate-400 font-mono text-center">
+            Arraste sobre o mapa (mouse ou toque) para inspecionar (&lambda;, &tau;)
+          </p>
+        </div>
+
+        <!-- Coluna Direita: Corte Espectral + Traço Cinético -->
+        <div class="lg:col-span-6 flex flex-col gap-6">
+          <!-- Corte Espectral Horizontal -->
+          <div class="glass-panel rounded-2xl p-4 sm:p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <div>
+                <h3 class="font-display text-sm font-bold text-white">2. Corte Espectral &Delta;A(&lambda;)</h3>
+                <p class="text-[11px] text-slate-400">Instante selecionado: <span id="slice-tau-txt" class="font-mono text-cyan-300 font-semibold">&tau; = +0,60 ps</span></p>
+              </div>
+              <div class="flex items-center gap-3 font-mono text-[10px] text-slate-400">
+                <span class="flex items-center gap-1"><span class="inline-block h-0.5 w-3 border-t border-dashed border-slate-400"></span>Abs (&minus;)</span>
+                <span class="flex items-center gap-1"><span class="inline-block h-0.5 w-3 border-t border-dashed border-emerald-400"></span>Fluor (&minus;)</span>
+              </div>
+            </div>
+            <div class="rounded-xl bg-[#05080f] border border-slate-800/90 p-1.5">
+              <canvas id="spectral-canvas" class="w-full h-[185px] sm:h-[200px] block touch-none"></canvas>
+            </div>
+          </div>
+
+          <!-- Traço Cinético Vertical -->
+          <div class="glass-panel rounded-2xl p-4 sm:p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <div>
+                <h3 class="font-display text-sm font-bold text-white">3. Traço Cinético &Delta;A(&tau;)</h3>
+                <p class="text-[11px] text-slate-400">
+                  Sonda em <span id="kin-wl-txt" class="font-mono text-amber-300 font-semibold">&lambda; = 535 nm</span>
+                  <span id="kin-t0-txt" class="hidden font-mono text-rose-300 ml-1.5">&bull; t<sub>0</sub>(&lambda;) = +0,05 ps</span>
+                </p>
+              </div>
+              <div id="wl-quick-bar" class="flex flex-wrap gap-1"></div>
+            </div>
+            <div class="rounded-xl bg-[#05080f] border border-slate-800/90 p-1.5">
+              <canvas id="kinetic-canvas" class="w-full h-[185px] sm:h-[200px] block touch-none"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SEÇÃO 5: ESCALAS TEMPORAIS & ANÁLISE GLOBAL (DADS vs. EADS)         -->
+    <!-- =================================================================== -->
+    <section id="global" class="py-14 sm:py-20 border-t border-slate-800/80">
+      <div class="mb-8 max-w-3xl">
+        <span class="font-mono text-xs uppercase tracking-widest text-emerald-400">Seção 05 &bull; Dinâmica &amp; Modelagem Cinética</span>
+        <h2 class="mt-2 font-display text-2xl sm:text-3xl font-bold text-white">Escalas Temporais e Análise Global (DADS vs. EADS)</h2>
+        <p class="mt-3 text-sm sm:text-base text-slate-300 leading-relaxed">
+          Do regime coerente de femtossegundos até a emissão fosforescente em microssegundos, clique nos marcos da linha do tempo e explore abaixo por que <strong class="text-violet-300">DADS</strong> e <strong class="text-emerald-300">EADS</strong> representam o mesmo experimento de formas tão diferentes.
+        </p>
+      </div>
+
+      <!-- Linha do Tempo Interativa (5 Regimes) -->
+      <div class="glass-panel rounded-2xl p-5 sm:p-6 mb-8">
+        <div class="relative">
+          <div class="hidden md:block absolute top-6 left-8 right-8 h-0.5 bg-gradient-to-r from-violet-500 via-cyan-400 via-emerald-400 via-amber-400 to-rose-400 opacity-35"></div>
+          <div id="timeline-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 relative z-10"></div>
+        </div>
+        <div id="timeline-card" class="mt-5 rounded-xl bg-[#060911]/90 border border-slate-800 p-5"></div>
+      </div>
+
+      <!-- Mini-Simulador Interativo: DADS vs. EADS (Modelo Sequencial A -> B -> S0) -->
+      <div class="glass-panel rounded-2xl p-5 sm:p-7 relative overflow-hidden">
+        <div class="absolute -bottom-20 -right-20 h-60 w-60 rounded-full bg-violet-500/10 blur-3xl pointer-events-none"></div>
+
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+          <div class="max-w-2xl space-y-1.5">
+            <div class="inline-flex items-center gap-2 rounded-lg bg-violet-500/15 border border-violet-500/30 px-2.5 py-1 font-mono text-[11px] text-violet-200">
+              Modelo Sequencial: A &xrightarrow;<sup>&tau;<sub>1</sub> = 0,5 ps</sup> B &xrightarrow;<sup>&tau;<sub>2</sub> = 100 ps</sup> S<sub>0</sub>
+            </div>
+            <h3 class="font-display text-xl sm:text-2xl font-bold text-white">Comparador Visual: DADS vs. EADS</h3>
+            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Na Análise Global, toda a matriz &Delta;A(&lambda;, &tau;) é ajustada simultaneamente com constantes de tempo comuns (&tau;<sub>1</sub>, &tau;<sub>2</sub>). Compare como a mesma reação sequencial aparece sob um modelo paralelo (<strong class="text-violet-300">DADS</strong>) e um modelo sequencial (<strong class="text-emerald-300">EADS</strong>).
+            </p>
+          </div>
+
+          <!-- Modo de Visualização -->
+          <div class="flex gap-1 p-1 rounded-xl bg-[#060911] border border-slate-800 self-start lg:self-auto shrink-0">
+            <button data-ga-mode="both" class="ga-mode-btn rounded-lg px-3 py-2 font-mono text-xs font-semibold bg-cyan-400 text-slate-950 transition-all">Lado a Lado</button>
+            <button data-ga-mode="dads" class="ga-mode-btn rounded-lg px-3 py-2 font-mono text-xs font-semibold text-slate-300 hover:text-white transition-all">Só DADS</button>
+            <button data-ga-mode="eads" class="ga-mode-btn rounded-lg px-3 py-2 font-mono text-xs font-semibold text-slate-300 hover:text-white transition-all">Só EADS</button>
+          </div>
+        </div>
+
+        <!-- Canvas do Comparador DADS vs EADS -->
+        <div id="ga-canvas-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+          <!-- Painel EADS -->
+          <div id="ga-eads-box" class="rounded-xl bg-[#060911]/95 border border-emerald-500/30 p-4">
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <span class="font-mono text-xs font-bold text-emerald-300">EADS (Modelo Sequencial A &rarr; B &rarr; S<sub>0</sub>)</span>
+                <p class="text-[11px] text-slate-400">Espectros diferenciais reais de cada espécie intermediária</p>
+              </div>
+              <div class="flex items-center gap-2.5 font-mono text-[10px]">
+                <span class="text-cyan-300">&#9644; EADS<sub>1</sub> (A)</span>
+                <span class="text-amber-300">&#9644; EADS<sub>2</sub> (B)</span>
+              </div>
+            </div>
+            <canvas id="eads-canvas" class="w-full h-[215px] block"></canvas>
+          </div>
+
+          <!-- Painel DADS -->
+          <div id="ga-dads-box" class="rounded-xl bg-[#060911]/95 border border-violet-500/35 p-4">
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <span class="font-mono text-xs font-bold text-violet-300">DADS (Soma de Exponenciais Decrescentes)</span>
+                <p class="text-[11px] text-slate-400">Amplitude associada a e<sup>&minus;&tau;/&tau;<sub>1</sub></sup> e e<sup>&minus;&tau;/&tau;<sub>2</sub></sup></p>
+              </div>
+              <div class="flex items-center gap-2.5 font-mono text-[10px]">
+                <span class="text-violet-300">&#9644; DADS<sub>1</sub> (0,5 ps)</span>
+                <span class="text-amber-300">&#9644; DADS<sub>2</sub> (100 ps)</span>
+              </div>
+            </div>
+            <canvas id="dads-canvas" class="w-full h-[215px] block"></canvas>
+          </div>
+        </div>
+
+        <!-- Explicação do Ponto que Mais Confunde Iniciantes -->
+        <div class="rounded-xl border border-rose-400/35 bg-rose-500/10 p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+          <div class="lg:col-span-8 space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="rounded-md bg-rose-500/25 px-2 py-0.5 font-mono text-[10px] font-bold text-rose-200 uppercase">Ponto-Chave</span>
+              <h4 class="font-display text-sm sm:text-base font-bold text-white">Por que o surgimento da banda positiva de B (630 nm) aparece NEGATIVO em DADS<sub>1</sub>?</h4>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+              Na população da espécie produto <strong>B</strong>, a cinética é <span class="font-mono text-cyan-200">c<sub>B</sub>(t) &prop; (+e<sup>&minus;t/&tau;<sub>2</sub></sup> &minus; e<sup>&minus;t/&tau;<sub>1</sub></sup>)</span>. Como o modelo DADS expressa tudo como uma soma de <em>exponenciais decrescentes</em>, um termo que <strong>cresce</strong> com o tempo &tau;<sub>1</sub> precisa obrigatoriamente de um <strong>sinal negativo</strong> multiplicando <span class="font-mono">e<sup>&minus;t/&tau;<sub>1</sub></sup></span>! Por isso, em DADS<sub>1</sub>, o pico positivo em 520 nm indica <em>decaimento</em> da ESA de A, enquanto o vale negativo em 630 nm indica <em>crescimento</em> da ESA positiva de B — e não emissão estimulada. Já o <strong>EADS</strong> reconstrói diretamente os espectros intuitivos de A e B.
+            </p>
+          </div>
+          <div class="lg:col-span-4 rounded-xl bg-[#060911]/90 border border-slate-800 p-3.5 font-mono text-[11px] space-y-2 text-slate-300">
+            <div class="text-violet-300 font-semibold">Relação exata (A &rarr; B &rarr; S<sub>0</sub>):</div>
+            <div>EADS<sub>1</sub>(&lambda;) = &varepsilon;<sub>A</sub>(&lambda;)</div>
+            <div>EADS<sub>2</sub>(&lambda;) = &varepsilon;<sub>B</sub>(&lambda;)</div>
+            <div class="h-px bg-slate-800"></div>
+            <div class="text-rose-300">DADS<sub>1</sub>(&lambda;) = &varepsilon;<sub>A</sub> &minus; &alpha;&middot;&varepsilon;<sub>B</sub></div>
+            <div class="text-amber-300">DADS<sub>2</sub>(&lambda;) = &alpha;&middot;&varepsilon;<sub>B</sub></div>
+            <div class="text-[10px] text-slate-500">com &alpha; = &tau;<sub>2</sub> / (&tau;<sub>2</sub> &minus; &tau;<sub>1</sub>) &approx; 1,005</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- SEÇÃO 6: RODAPÉ CIENTÍFICO & REFERÊNCIAS CLÁSSICAS                    -->
+  <!-- ===================================================================== -->
+  <footer class="mt-8 border-t border-slate-800/80 bg-[#04070e]">
+    <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 space-y-8">
+      <!-- Referências Fundamentais -->
+      <div>
+        <h3 class="font-mono text-xs uppercase tracking-widest text-slate-400 mb-3">Referências Fundamentais de Consulta</h3>
+        <ol class="space-y-2 text-xs text-slate-400 leading-relaxed list-decimal list-inside">
+          <li>
+            <strong class="text-slate-300">Berera, R.; van Grondelle, R.; Kennis, J. T. M.</strong> <em>Ultrafast transient absorption spectroscopy: principles and application to photosynthetic systems.</em> Photosynthesis Research, 101, 105–118 (2009).
+          </li>
+          <li>
+            <strong class="text-slate-300">Ruckebusch, C.; Sliwa, M.; Pernot, P.; de Juan, A.; Tauler, R.</strong> <em>Comprehensive data analysis of femtosecond transient absorption spectra: A review.</em> Journal of Photochemistry and Photobiology C: Photochemistry Reviews, 13(1), 1–27 (2012).
+          </li>
+          <li>
+            <strong class="text-slate-300">Valverde, J. V. P.; Romero, A. L. do S.; Cunha, R.; Garcia, R. de Q.; Stoerkler, T.; Massue, J.; De Boni, L.; Mendonça, C. R.</strong> <em>The ESIPT-suppressed 2-(2'-hydroxyphenyl)benzoxazole derivative as a new photoinitiator for multiphoton polymerization.</em> Journal of Materials Chemistry C, 13, 7130–7139 (2025).
+          </li>
+        </ol>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- CRÉDITOS DO AUTOR & LINK DO GITHUB                                  -->
+      <!-- Edite os campos abaixo com o seu nome, afiliação e URL do GitHub    -->
+      <!-- =================================================================== -->
+      <div class="pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-slate-400">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="h-2 w-2 rounded-full bg-cyan-400"></span>
+            <span class="text-slate-200 font-medium">Recurso didático aberto para ensino e seminários em fotônica ultrarrápida.</span>
+          </div>
+          <p class="text-[11px] text-slate-500">
+            Desenvolvido por <strong class="text-slate-300"><!-- INSIRA SEU NOME AQUI -->Seu Nome</strong> &bull;
+            <!-- INSIRA SEU LINK DO GITHUB NO HREF ABAIXO -->
+            <a href="https://github.com/seu-usuario" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline decoration-cyan-400/40 underline-offset-2">github.com/seu-usuario</a>
+          </p>
+        </div>
+
+        <div class="font-mono text-[10.5px] text-slate-500">
+          v2.0 &bull; HTML5 Canvas HiDPI + SVG &bull; Estático (GitHub Pages)
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===================================================================== -->
+  <!-- MOTOR JAVASCRIPT: FÍSICA, CONVOLUÇÃO IRF, CHIRP, CANVAS HiDPI & UI    -->
+  <!-- ===================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* -------------------------------------------------------------------
+       * 1. FUNÇÕES MATEMÁTICAS ESTÁVEIS (ERFC / ERFCX / CONVOLUÇÃO IRF)
+       * ------------------------------------------------------------------- */
+
+      // Aproximação numérica estável de erfc(x) (erro < 1.5e-7)
+      function erfc(x) {
+        const z = Math.abs(x);
+        const t = 1.0 / (1.0 + 0.5 * z);
+        const ans = t * Math.exp(
+          -z * z - 1.26551223 +
+          t * (1.00002368 +
+          t * (0.37409196 +
+          t * (0.09678418 +
+          t * (-0.18628806 +
+          t * (0.27886807 +
+          t * (-1.13520398 +
+          t * (1.48851587 +
+          t * (-0.82215223 +
+          t * 0.17087277))))))))
+        );
+        return x >= 0 ? ans : 2.0 - ans;
+      }
+
+      // erfcx(z) = exp(z^2) * erfc(z) para z >= 0 (imune a overflow)
+      function erfcx(z) {
+        const az = Math.abs(z);
+        const t = 1.0 / (1.0 + 0.5 * az);
+        return t * Math.exp(
+          -1.26551223 +
+          t * (1.00002368 +
+          t * (0.37409196 +
+          t * (0.09678418 +
+          t * (-0.18628806 +
+          t * (0.27886807 +
+          t * (-1.13520398 +
+          t * (1.48851587 +
+          t * (-0.82215223 +
+          t * 0.17087277))))))))
+        );
+      }
+
+      // Convolução analítica exata de H(t)*exp(-t/tau) com IRF Gaussiana de desvio padrão sigma
+      function irfExp(t, tau, sigma) {
+        const invSqrt2 = 0.7071067811865475;
+        const u = (sigma / tau - t / sigma) * invSqrt2;
+        if (u >= 0) {
+          const ts = t / sigma;
+          return 0.5 * Math.exp(-0.5 * ts * ts) * erfcx(u);
+        }
+        const exponent = 0.5 * (sigma / tau) * (sigma / tau) - t / tau;
+        return 0.5 * Math.exp(exponent) * erfc(u);
+      }
+
+      // Função degrau suavizada pela IRF
+      function irfStep(t, sigma) {
+        return 0.5 * erfc(-t / (sigma * Math.SQRT2));
+      }
+
+      function gaussian(x, center, width) {
+        const d = (x - center) / width;
+        return Math.exp(-0.5 * d * d);
+      }
+
+      function formatPT(val, dec = 2) {
+        return val.toFixed(dec).replace('.', ',');
+      }
+
+      function formatTau(tau) {
+        if (Math.abs(tau) < 0.005) return '0,00 ps';
+        const sign = tau > 0 ? '+' : '−';
+        const a = Math.abs(tau);
+        if (a < 1.0) return `${sign}${Math.round(a * 1000)} fs`;
+        if (a < 10) return `${sign}${formatPT(a, 2)} ps`;
+        if (a < 100) return `${sign}${formatPT(a, 1)} ps`;
+        return `${sign}${Math.round(a)} ps`;
+      }
+
+      // Configuração HiDPI / Retina para qualquer Canvas
+      function prepCanvas(canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+        const w = Math.max(1, Math.round(rect.width));
+        const h = Math.max(1, Math.round(rect.height));
+        const targetW = Math.round(w * dpr);
+        const targetH = Math.round(h * dpr);
+        if (canvas.width !== targetW || canvas.height !== targetH) {
+          canvas.width = targetW;
+          canvas.height = targetH;
+        }
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { ctx, w, h };
+      }
+
+      // Menu Mobile
+      const mobileBtn = document.getElementById('mobile-menu-btn');
+      const mobileMenu = document.getElementById('mobile-menu');
+      if (mobileBtn && mobileMenu) {
+        mobileBtn.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+        mobileMenu.querySelectorAll('.mobile-link').forEach((el) => {
+          el.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+        });
+      }
+
+      /* -------------------------------------------------------------------
+       * 2. HERO: PULSO PUMP ULTRACURTO + PULSO PROBE WLC COM ATRASO τ
+       * ------------------------------------------------------------------- */
+      const heroCanvas = document.getElementById('hero-canvas');
+      let heroPhase = 0;
+
+      function drawHeroCanvas() {
+        if (!heroCanvas) return;
+        const { ctx, w, h } = prepCanvas(heroCanvas);
+        ctx.clearRect(0, 0, w, h);
+
+        const cy = h * 0.56;
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(12, cy);
+        ctx.lineTo(w - 12, cy);
+        ctx.stroke();
+
+        // Posição dos dois pulsos com leve oscilação de τ
+        const pumpX = w * 0.28;
+        const probeX = w * 0.66 + Math.sin(heroPhase * 0.45) * Math.min(26, w * 0.08);
+
+        // Indicador de atraso τ
+        ctx.strokeStyle = 'rgba(34, 211, 238, 0.6)';
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(pumpX, 16);
+        ctx.lineTo(probeX, 16);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#67e8f9';
+        ctx.font = '600 10.5px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('atraso óptico τ', (pumpX + probeX) * 0.5, 12);
+
+        // Pulso Pump (intenso, curto, violeta)
+        ctx.save();
+        ctx.shadowColor = 'rgba(167, 139, 250, 0.45)';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        for (let x = 12; x < w - 12; x++) {
+          const env = gaussian(x, pumpX, 15);
+          const carrier = Math.cos((x - pumpX) * 0.58 - heroPhase * 3.8);
+          const y = cy - env * carrier * (h * 0.34);
+          if (x === 12) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = '#a78bfa';
+        ctx.lineWidth = 2.2;
+        ctx.stroke();
+        ctx.restore();
+
+        // Pulso Probe (WLC policromático, mais fraco)
+        const wlcGrad = ctx.createLinearGradient(probeX - 34, 0, probeX + 34, 0);
+        wlcGrad.addColorStop(0, '#22d3ee');
+        wlcGrad.addColorStop(0.35, '#34d399');
+        wlcGrad.addColorStop(0.7, '#fbbf24');
+        wlcGrad.addColorStop(1, '#fb7185');
+
+        ctx.beginPath();
+        for (let x = 12; x < w - 12; x++) {
+          const env = gaussian(x, probeX, 22);
+          const carrier = Math.cos((x - probeX) * 0.42 - heroPhase * 3.8);
+          const y = cy - env * carrier * (h * 0.21);
+          if (x === 12) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = wlcGrad;
+        ctx.lineWidth = 1.9;
+        ctx.stroke();
+
+        // Legendas
+        ctx.font = '600 10px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#c4b5fd';
+        ctx.fillText('Pump (Excitação)', pumpX, h - 5);
+        ctx.fillStyle = '#67e8f9';
+        ctx.fillText('Probe (WLC)', probeX, h - 5);
+
+        heroPhase += 0.032;
+      }
+
+      /* -------------------------------------------------------------------
+       * 3. SEÇÃO 2: BANCADA ÓPTICA INTERATIVA (CHOPPER f/2 & ÂNGULO MÁGICO)
+       * ------------------------------------------------------------------- */
+      const benchCanvas = document.getElementById('bench-canvas');
+      const benchSlider = document.getElementById('bench-tau-slider');
+      const benchPlayBtn = document.getElementById('bench-play-btn');
+      const benchBadge = document.getElementById('bench-badge');
+      const benchShotBadge = document.getElementById('bench-shot-badge');
+      const benchTauVal = document.getElementById('bench-tau-val');
+      const benchDxUm = document.getElementById('bench-dx-um');
+      const benchDxMm = document.getElementById('bench-dx-mm');
+      const magicAngleBtn = document.getElementById('magic-angle-btn');
+      const magicDot = document.getElementById('magic-dot');
+      const magicTag = document.getElementById('magic-tag');
+      const magicPanel = document.getElementById('magic-angle-panel');
+
+      const benchState = {
+        tau: 2.0,          // -2.0 a +50.0 ps
+        playing: true,
+        chopperMode: 'auto', // 'auto' | 'on' | 'off'
+        shotIndex: 0,      // alterna par/ímpar no modo auto (f/2)
+        magicHighlight: true,
+        pulseT: 0,
+      };
+
+      // Mapeamento suave do slider (0..1000) para -2.0 a +50.0 ps
+      function sliderToBenchTau(v) {
+        const n = v / 1000;
+        if (n <= 0.22) {
+          return -2.0 + (n / 0.22) * 2.0; // -2.0 .. 0.0
+        } else if (n <= 0.62) {
+          return ((n - 0.22) / 0.40) * 5.0; // 0.0 .. 5.0
+        } else {
+          const u = (n - 0.62) / 0.38;
+          return 5.0 + 45.0 * u * u; // 5.0 .. 50.0
+        }
+      }
+
+      function benchTauToSlider(tau) {
+        const c = Math.max(-2.0, Math.min(50.0, tau));
+        if (c <= 0) return Math.round(((c + 2.0) / 2.0) * 220);
+        if (c <= 5.0) return Math.round(220 + (c / 5.0) * 400);
+        return Math.round(620 + Math.sqrt((c - 5.0) / 45.0) * 380);
+      }
+
+      function isCurrentShotPumpOn() {
+        if (benchState.chopperMode === 'on') return true;
+        if (benchState.chopperMode === 'off') return false;
+        return benchState.shotIndex % 2 === 0;
+      }
+
+      function updateBenchReadouts() {
+        const tau = benchState.tau;
+        const c_mm_ps = 0.299792458;
+        const dx_mm = (c_mm_ps * tau) / 2.0;
+        const dx_um = dx_mm * 1000;
+
+        benchTauVal.textContent = formatTau(tau);
+        const signUm = dx_um > 0.5 ? '+' : dx_um < -0.5 ? '−' : '';
+        benchDxUm.textContent = `${signUm}${Math.round(Math.abs(dx_um)).toLocaleString('pt-BR')} µm`;
+        const signMm = dx_mm > 0.0005 ? '+' : dx_mm < -0.0005 ? '−' : '';
+        benchDxMm.textContent = `(${signMm}${formatPT(Math.abs(dx_mm), 3)} mm)`;
+
+        const modeLabel =
+          benchState.chopperMode === 'auto'
+            ? 'Chopper Auto (f/2)'
+            : benchState.chopperMode === 'on'
+            ? 'Chopper Fixo ON'
+            : 'Chopper Fixo OFF';
+
+        const arrivalStr =
+          tau < -0.05
+            ? 'Probe antes do Pump'
+            : Math.abs(tau) <= 0.05
+            ? 'Sobreposição (τ ≈ 0)'
+            : 'Probe após Pump';
+
+        benchBadge.textContent = `τ = ${formatTau(tau)} • ${arrivalStr} • ${modeLabel}`;
+
+        const on = isCurrentShotPumpOn();
+        if (on) {
+          benchShotBadge.innerHTML = 'Pulso atual: PUMP ON &rarr; I<sub>on</sub>';
+          benchShotBadge.className = 'rounded-lg bg-violet-500/20 border border-violet-400/45 px-2.5 py-1 font-mono text-[11px] font-bold text-violet-200 backdrop-blur';
+        } else {
+          benchShotBadge.innerHTML = 'Pulso atual: PUMP OFF &rarr; I<sub>off</sub>';
+          benchShotBadge.className = 'rounded-lg bg-slate-800/90 border border-slate-600/70 px-2.5 py-1 font-mono text-[11px] font-bold text-slate-300 backdrop-blur';
+        }
+      }
+
+      benchSlider.addEventListener('input', () => {
+        benchState.tau = sliderToBenchTau(Number(benchSlider.value));
+        updateBenchReadouts();
+      });
+
+      document.querySelectorAll('.bench-preset').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const t = parseFloat(btn.getAttribute('data-btau'));
+          benchState.tau = t;
+          benchSlider.value = benchTauToSlider(t);
+          updateBenchReadouts();
+        });
+      });
+
+      benchPlayBtn.addEventListener('click', () => {
+        benchState.playing = !benchState.playing;
+        benchPlayBtn.innerHTML = benchState.playing ? '&#10074;&#10074; Pausar' : '&#9654; Animar';
+      });
+
+      document.querySelectorAll('.chopper-mode-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          benchState.chopperMode = btn.getAttribute('data-chopper');
+          document.querySelectorAll('.chopper-mode-btn').forEach((b) => {
+            const active = b === btn;
+            b.className = active
+              ? 'chopper-mode-btn rounded-lg py-1.5 font-mono text-[11px] font-semibold bg-violet-500 text-slate-950 transition-all'
+              : 'chopper-mode-btn rounded-lg py-1.5 font-mono text-[11px] font-semibold text-slate-300 hover:text-white transition-all';
+          });
+          updateBenchReadouts();
+        });
+      });
+
+      magicAngleBtn.addEventListener('click', () => {
+        benchState.magicHighlight = !benchState.magicHighlight;
+        if (benchState.magicHighlight) {
+          magicAngleBtn.className = 'w-full rounded-xl border border-emerald-400/50 bg-emerald-500/15 px-3 py-2 text-left transition-all hover:bg-emerald-500/25 flex items-center justify-between gap-2';
+          magicDot.className = 'h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]';
+          magicTag.textContent = 'DESTACADO';
+          magicTag.className = 'rounded bg-emerald-500/25 px-1.5 py-0.5 font-mono text-[10px] text-emerald-200';
+          magicPanel.classList.remove('opacity-55');
+        } else {
+          magicAngleBtn.className = 'w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-left transition-all hover:border-slate-600 flex items-center justify-between gap-2';
+          magicDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-500';
+          magicTag.textContent = 'NORMAL';
+          magicTag.className = 'rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-slate-400';
+          magicPanel.classList.add('opacity-55');
+        }
+      });
+
+      function samplePolyline(pts, frac) {
+        const f = Math.max(0, Math.min(1, frac));
+        let total = 0;
+        const lens = [];
+        for (let i = 0; i < pts.length - 1; i++) {
+          const l = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+          lens.push(l);
+          total += l;
+        }
+        let dist = f * total;
+        for (let i = 0; i < lens.length; i++) {
+          if (dist <= lens[i] || i === lens.length - 1) {
+            const u = lens[i] > 0 ? dist / lens[i] : 0;
+            return {
+              x: pts[i][0] + (pts[i + 1][0] - pts[i][0]) * u,
+              y: pts[i][1] + (pts[i + 1][1] - pts[i][1]) * u,
+            };
+          }
+          dist -= lens[i];
+        }
+        return { x: pts[0][0], y: pts[0][1] };
+      }
+
+      function drawOpticalBench() {
+        if (!benchCanvas) return;
+        const { ctx, w, h } = prepCanvas(benchCanvas);
+        ctx.clearRect(0, 0, w, h);
+
+        // Coordenadas virtuais 960 x 420
+        const sx = w / 960;
+        const sy = h / 420;
+        const px = (x) => x * sx;
+        const py = (y) => y * sy;
+
+        // Grade de furos de mesa óptica
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.08)';
+        for (let gx = 20; gx < w - 12; gx += 30) {
+          for (let gy = 20; gy < h - 12; gy += 30) {
+            ctx.beginPath();
+            ctx.arc(gx, gy, 1.05, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        const pumpOn = isCurrentShotPumpOn();
+        const normDelay = benchTauToSlider(benchState.tau) / 1000;
+        const retroX = 392 + (normDelay - 0.22) * 105;
+
+        // Pontos dos feixes
+        const laserOut = [125, 206];
+        const bsPos = [212, 206];
+
+        // Braço Pump (Superior)
+        const mPump1 = [212, 92];
+        const opaPos = [335, 92];
+        const chopperPos = [472, 92];
+        const mPump2 = [635, 92];
+        const samplePos = [722, 212];
+
+        // Braço Probe (Inferior + Linha de Atraso + Safira + Polarizador 54,7° + Amostra + Detector)
+        const mProbe1 = [212, 304];
+        const retroIn = [retroX, 304];
+        const retroOut = [retroX, 346];
+        const mProbe2 = [292, 346];
+        const mProbe3 = [292, 224];
+        const sapphirePos = [472, 218];
+        const polarizerPos = [598, 215];
+        const specPos = [864, 212];
+
+        // 1. Feixe Laser Fundamental
+        ctx.strokeStyle = 'rgba(251, 113, 133, 0.5)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(px(laserOut[0]), py(laserOut[1]));
+        ctx.lineTo(px(bsPos[0]), py(bsPos[1]));
+        ctx.stroke();
+
+        // 2. Braço Pump
+        ctx.strokeStyle = 'rgba(251, 113, 133, 0.35)';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(px(bsPos[0]), py(bsPos[1]));
+        ctx.lineTo(px(mPump1[0]), py(mPump1[1]));
+        ctx.lineTo(px(opaPos[0]), py(opaPos[1]));
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(167, 139, 250, 0.65)';
+        ctx.lineWidth = 2.8;
+        ctx.beginPath();
+        ctx.moveTo(px(opaPos[0]), py(opaPos[1]));
+        ctx.lineTo(px(chopperPos[0]), py(chopperPos[1]));
+        ctx.stroke();
+
+        if (pumpOn) {
+          ctx.strokeStyle = 'rgba(167, 139, 250, 0.72)';
+          ctx.lineWidth = 2.8;
+          ctx.beginPath();
+          ctx.moveTo(px(chopperPos[0]), py(chopperPos[1]));
+          ctx.lineTo(px(mPump2[0]), py(mPump2[1]));
+          ctx.lineTo(px(samplePos[0]), py(samplePos[1]));
+          ctx.stroke();
+        } else {
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+          ctx.setLineDash([4, 4]);
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(px(chopperPos[0]), py(chopperPos[1]));
+          ctx.lineTo(px(mPump2[0]), py(mPump2[1]));
+          ctx.lineTo(px(samplePos[0]), py(samplePos[1]));
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // 3. Braço Probe até Safira
+        ctx.strokeStyle = 'rgba(251, 113, 133, 0.36)';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(px(bsPos[0]), py(bsPos[1]));
+        ctx.lineTo(px(mProbe1[0]), py(mProbe1[1]));
+        ctx.lineTo(px(retroIn[0]), py(retroIn[1]));
+        ctx.lineTo(px(retroOut[0]), py(retroOut[1]));
+        ctx.lineTo(px(mProbe2[0]), py(mProbe2[1]));
+        ctx.lineTo(px(mProbe3[0]), py(mProbe3[1]));
+        ctx.lineTo(px(sapphirePos[0]), py(sapphirePos[1]));
+        ctx.stroke();
+
+        // Contínuo de Luz Branca (WLC) após Safira
+        const wlcGrad = ctx.createLinearGradient(px(sapphirePos[0]), py(sapphirePos[1]), px(specPos[0]), py(specPos[1]));
+        wlcGrad.addColorStop(0, '#ffffff');
+        wlcGrad.addColorStop(0.25, '#22d3ee');
+        wlcGrad.addColorStop(0.55, '#34d399');
+        wlcGrad.addColorStop(0.8, '#fbbf24');
+        wlcGrad.addColorStop(1, '#fb7185');
+        ctx.strokeStyle = wlcGrad;
+        ctx.lineWidth = 3.1;
+        ctx.beginPath();
+        ctx.moveTo(px(sapphirePos[0]), py(sapphirePos[1]));
+        ctx.lineTo(px(polarizerPos[0]), py(polarizerPos[1]));
+        ctx.lineTo(px(samplePos[0]), py(samplePos[1]));
+        ctx.lineTo(px(specPos[0]), py(specPos[1]));
+        ctx.stroke();
+
+        // 4. Trilho do Estágio Motorizado + Retrorrefletor
+        ctx.fillStyle = 'rgba(30, 41, 59, 0.85)';
+        ctx.strokeStyle = 'rgba(71, 85, 105, 0.8)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.roundRect(px(330), py(364), px(205), py(13), 4);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#0b1120';
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.roundRect(px(retroX - 10), py(290), px(34), py(72), 6);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = '#67e8f9';
+        ctx.lineWidth = 2.6;
+        ctx.beginPath();
+        ctx.moveTo(px(retroX - 2), py(297));
+        ctx.lineTo(px(retroX + 12), py(325));
+        ctx.lineTo(px(retroX - 2), py(353));
+        ctx.stroke();
+
+        ctx.fillStyle = '#67e8f9';
+        ctx.font = `600 ${Math.max(8, Math.round(10 * sx))}px "Inter", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('Estágio de Atraso Motorizado (Δx = c·τ/2)', px(432), py(395));
+
+        // Auxiliares de desenho de componentes
+        function drawBox(x, y, bw, bh, title, sub, borderCol, fillCol) {
+          ctx.fillStyle = fillCol || '#0b1120';
+          ctx.strokeStyle = borderCol;
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.roundRect(px(x - bw / 2), py(y - bh / 2), px(bw), py(bh), 8);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = `700 ${Math.max(8.5, Math.round(11 * sx))}px "Space Grotesk", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText(title, px(x), py(y - (sub ? 3 : -3)));
+          if (sub) {
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = `500 ${Math.max(7.5, Math.round(9 * sx))}px "JetBrains Mono", monospace`;
+            ctx.fillText(sub, px(x), py(y + 11));
+          }
+        }
+
+        function drawMirror(x, y, deg) {
+          ctx.save();
+          ctx.translate(px(x), py(y));
+          ctx.rotate((deg * Math.PI) / 180);
+          ctx.strokeStyle = '#cbd5e1';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(-11 * sx, 0);
+          ctx.lineTo(11 * sx, 0);
+          ctx.stroke();
+          ctx.strokeStyle = '#22d3ee';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(-10 * sx, 2.5);
+          ctx.lineTo(10 * sx, 2.5);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Laser fs
+        drawBox(68, 206, 110, 52, 'Laser fs', '800 / 1030 nm', '#fb7185', 'rgba(136, 19, 55, 0.35)');
+
+        // Divisor de Feixe (BS)
+        ctx.save();
+        ctx.translate(px(bsPos[0]), py(bsPos[1]));
+        ctx.rotate(-Math.PI / 4);
+        ctx.fillStyle = 'rgba(34, 211, 238, 0.25)';
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 1.8;
+        ctx.fillRect(-14 * sx, -3, 28 * sx, 6);
+        ctx.strokeRect(-14 * sx, -3, 28 * sx, 6);
+        ctx.restore();
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = `600 ${Math.max(8, Math.round(9.5 * sx))}px "JetBrains Mono", monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText('BS', px(bsPos[0] + 22), py(bsPos[1] - 12));
+
+        // Espelhos
+        drawMirror(mPump1[0], mPump1[1], -45);
+        drawMirror(mPump2[0], mPump2[1], 62);
+        drawMirror(mProbe1[0], mProbe1[1], 45);
+        drawMirror(mProbe2[0], mProbe2[1], 135);
+        drawMirror(mProbe3[0], mProbe3[1], -45);
+
+        // OPA
+        drawBox(opaPos[0], opaPos[1], 92, 38, 'OPA', 'Pump Sintoniz.', '#a78bfa', 'rgba(76, 29, 149, 0.45)');
+
+        // Chopper em f/2
+        ctx.save();
+        ctx.translate(px(chopperPos[0]), py(chopperPos[1]));
+        ctx.fillStyle = pumpOn ? 'rgba(15, 23, 42, 0.92)' : 'rgba(251, 113, 133, 0.22)';
+        ctx.strokeStyle = pumpOn ? '#a78bfa' : '#fb7185';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.arc(0, 0, 15 * sx, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        const bladeAng = pumpOn ? 0.65 : 0;
+        ctx.fillStyle = pumpOn ? 'rgba(148, 163, 184, 0.4)' : '#fb7185';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, 14 * sx, bladeAng - 0.36, bladeAng + 0.36);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, 14 * sx, bladeAng + Math.PI - 0.36, bladeAng + Math.PI + 0.36);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = pumpOn ? '#c4b5fd' : '#fda4af';
+        ctx.font = `600 ${Math.max(8, Math.round(9.5 * sx))}px "JetBrains Mono", monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(`Chopper f/2 (${pumpOn ? 'ON' : 'OFF'})`, px(chopperPos[0]), py(chopperPos[1] - 24));
+
+        // Cristal de Safira (WLC)
+        ctx.save();
+        ctx.translate(px(sapphirePos[0]), py(sapphirePos[1]));
+        ctx.fillStyle = 'rgba(34, 211, 238, 0.24)';
+        ctx.strokeStyle = '#67e8f9';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.roundRect(-8 * sx, -18 * sy, 16 * sx, 36 * sy, 4);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = '#bae6fd';
+        ctx.font = `600 ${Math.max(8, Math.round(9.5 * sx))}px "Inter", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('Safira (WLC)', px(sapphirePos[0]), py(sapphirePos[1] + 34));
+
+        // Polarizador no Ângulo Mágico (54,7°)
+        ctx.save();
+        ctx.translate(px(polarizerPos[0]), py(polarizerPos[1]));
+        if (benchState.magicHighlight) {
+          const mg = ctx.createRadialGradient(0, 0, 3, 0, 0, 32 * sx);
+          mg.addColorStop(0, 'rgba(52, 211, 153, 0.45)');
+          mg.addColorStop(1, 'rgba(52, 211, 153, 0)');
+          ctx.fillStyle = mg;
+          ctx.beginPath();
+          ctx.arc(0, 0, 32 * sx, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = benchState.magicHighlight ? 'rgba(6, 78, 59, 0.72)' : 'rgba(15, 23, 42, 0.9)';
+        ctx.strokeStyle = benchState.magicHighlight ? '#34d399' : '#64748b';
+        ctx.lineWidth = benchState.magicHighlight ? 2.2 : 1.5;
+        ctx.beginPath();
+        ctx.roundRect(-12 * sx, -20 * sy, 24 * sx, 40 * sy, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        // Seta interna inclinada a 54,7°
+        const rad = (-54.7 * Math.PI) / 180;
+        ctx.strokeStyle = benchState.magicHighlight ? '#6ee7b7' : '#94a3b8';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(-8 * sx * Math.cos(rad), -8 * sy * Math.sin(rad));
+        ctx.lineTo(8 * sx * Math.cos(rad), 8 * sy * Math.sin(rad));
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = benchState.magicHighlight ? '#34d399' : '#94a3b8';
+        ctx.font = `700 ${Math.max(8, Math.round(9.5 * sx))}px "JetBrains Mono", monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText('Polarizador', px(polarizerPos[0]), py(polarizerPos[1] - 28));
+        ctx.fillText('54,7°', px(polarizerPos[0]), py(polarizerPos[1] + 35));
+
+        // 5. Animação de Pulsos & Cubeta
+        const t = benchState.pulseT;
+        const pumpArrival = 0.60;
+        const probeArrival = pumpArrival + (normDelay - 0.22) * 0.22;
+
+        let cuvetteGlow = 0;
+        if (pumpOn && t >= pumpArrival) {
+          cuvetteGlow = Math.exp(-(t - pumpArrival) * 5.2);
+        }
+
+        // Cubeta (Amostra)
+        ctx.save();
+        ctx.translate(px(samplePos[0]), py(samplePos[1]));
+        if (cuvetteGlow > 0.03) {
+          const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, 38 * sx);
+          glow.addColorStop(0, `rgba(167, 139, 250, ${0.75 * cuvetteGlow})`);
+          glow.addColorStop(0.55, `rgba(34, 211, 238, ${0.28 * cuvetteGlow})`);
+          glow.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(0, 0, 38 * sx, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = cuvetteGlow > 0.08 ? `rgba(139, 92, 246, ${0.24 + 0.45 * cuvetteGlow})` : 'rgba(11, 17, 32, 0.9)';
+        ctx.strokeStyle = cuvetteGlow > 0.15 ? '#c4b5fd' : '#22d3ee';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-14 * sx, -24 * sy, 28 * sx, 48 * sy, 5);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = `700 ${Math.max(8.5, Math.round(10.5 * sx))}px "Space Grotesk", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('Amostra', px(samplePos[0]), py(samplePos[1] + 40));
+
+        // Espectrômetro
+        drawBox(
+          872,
+          212,
+          126,
+          56,
+          'Espectrômetro',
+          pumpOn ? 'Lê I_on(λ,τ)' : 'Lê I_off(λ)',
+          pumpOn ? '#22d3ee' : '#64748b',
+          'rgba(11, 17, 32, 0.94)'
+        );
+
+        // Mini display ΔA abaixo do espectrômetro
+        const bx = px(814);
+        const by = py(254);
+        ctx.fillStyle = 'rgba(11, 17, 32, 0.9)';
+        ctx.strokeStyle = 'rgba(51, 65, 85, 0.8)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, px(116), py(44), 6);
+        ctx.fill();
+        ctx.stroke();
+
+        const hasSig = pumpOn && benchState.tau >= 0;
+        ctx.fillStyle = hasSig ? '#22d3ee' : '#94a3b8';
+        ctx.font = `600 ${Math.max(7.5, Math.round(8.5 * sx))}px "JetBrains Mono", monospace`;
+        ctx.textAlign = 'left';
+        ctx.fillText(hasSig ? 'Sinal: I_on ≠ I_off' : 'Ref: I_off (base)', bx + 6 * sx, by + 13 * sy);
+
+        ctx.beginPath();
+        for (let i = 0; i < 42; i++) {
+          const u = i / 41;
+          const x = bx + (8 + u * 100) * sx;
+          let sig = 0;
+          if (hasSig) {
+            const dec = Math.exp(-benchState.tau / 45);
+            sig = (-0.55 * gaussian(u, 0.28, 0.11) + 0.78 * gaussian(u, 0.62, 0.13)) * dec;
+          }
+          const y = by + (30 - sig * 12) * sy;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = hasSig ? '#fbbf24' : '#475569';
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+
+        // Desenho dos pacotes luminosos viajando
+        function drawPulse(x, y, color, rad) {
+          const g = ctx.createRadialGradient(px(x), py(y), 1, px(x), py(y), rad * 2.6);
+          g.addColorStop(0, '#ffffff');
+          g.addColorStop(0.36, color);
+          g.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(px(x), py(y), rad * 2.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (t <= 0.14) {
+          const p = samplePolyline([laserOut, bsPos], t / 0.14);
+          drawPulse(p.x, p.y, '#fb7185', 5.5);
+        } else {
+          if (t <= pumpArrival) {
+            const frac = (t - 0.14) / (pumpArrival - 0.14);
+            const path = [bsPos, mPump1, opaPos, chopperPos, mPump2, samplePos];
+            const chopperFrac = 0.56;
+            if (pumpOn || frac < chopperFrac) {
+              const p = samplePolyline(path, frac);
+              drawPulse(p.x, p.y, frac < 0.34 ? '#fb7185' : '#a78bfa', 6.0);
+            }
+          }
+          const specArrival = probeArrival + 0.18;
+          if (t <= probeArrival) {
+            const frac = (t - 0.14) / Math.max(0.08, probeArrival - 0.14);
+            const path = [bsPos, mProbe1, retroIn, retroOut, mProbe2, mProbe3, sapphirePos, polarizerPos, samplePos];
+            const p = samplePolyline(path, frac);
+            drawPulse(p.x, p.y, frac > 0.72 ? '#22d3ee' : '#fb7185', 5.0);
+          } else if (t <= specArrival) {
+            const frac = (t - probeArrival) / 0.18;
+            const p = samplePolyline([samplePos, specPos], frac);
+            drawPulse(p.x, p.y, '#34d399', 5.2);
+          }
+        }
+
+        if (benchState.playing) {
+          benchState.pulseT += 0.009;
+          if (benchState.pulseT > 1.06) {
+            benchState.pulseT = 0;
+            if (benchState.chopperMode === 'auto') {
+              benchState.shotIndex++;
+              updateBenchReadouts();
+            }
+          }
+        }
+      }
+
+      /* -------------------------------------------------------------------
+       * 4. SEÇÃO 3: ANATOMIA ΔA + JABLONSKI SINCRONIZADO (4 SLIDERS)
+       * ------------------------------------------------------------------- */
+      const anatCanvas = document.getElementById('anatomy-canvas');
+      const ampGsbSlider = document.getElementById('amp-gsb-slider');
+      const ampSeSlider = document.getElementById('amp-se-slider');
+      const ampEsaSlider = document.getElementById('amp-esa-slider');
+      const posEsaSlider = document.getElementById('pos-esa-slider');
+
+      const ampGsbVal = document.getElementById('amp-gsb-val');
+      const ampSeVal = document.getElementById('amp-se-val');
+      const ampEsaVal = document.getElementById('amp-esa-val');
+      const posEsaVal = document.getElementById('pos-esa-val');
+      const anatomyInsight = document.getElementById('anatomy-insight');
+
+      const anatState = {
+        gsbAmp: 34,
+        seAmp: 28,
+        esaAmp: 42,
+        esaPos: 560,
+      };
+
+      function syncAnatomyUI() {
+        ampGsbVal.textContent = anatState.gsbAmp === 0 ? '0 mOD' : `−${anatState.gsbAmp} mOD`;
+        ampSeVal.textContent = anatState.seAmp === 0 ? '0 mOD' : `−${anatState.seAmp} mOD`;
+        ampEsaVal.textContent = anatState.esaAmp === 0 ? '0 mOD' : `+${anatState.esaAmp} mOD`;
+        posEsaVal.textContent = `${anatState.esaPos} nm`;
+
+        ampGsbSlider.value = anatState.gsbAmp;
+        ampSeSlider.value = anatState.seAmp;
+        ampEsaSlider.value = anatState.esaAmp;
+        posEsaSlider.value = anatState.esaPos;
+
+        // Sincroniza opacidade e espessura das setas no diagrama de Jablonski SVG
+        function updateArrow(groupId, lineId, val, maxVal) {
+          const grp = document.getElementById(groupId);
+          const line = document.getElementById(lineId);
+          const frac = val / maxVal;
+          grp.style.opacity = val === 0 ? '0.14' : (0.35 + 0.65 * frac).toFixed(2);
+          line.setAttribute('stroke-width', (1.4 + 2.8 * frac).toFixed(2));
+        }
+        updateArrow('svg-gsb-group', 'svg-gsb-line', anatState.gsbAmp, 50);
+        updateArrow('svg-se-group', 'svg-se-line', anatState.seAmp, 50);
+        updateArrow('svg-esa-group', 'svg-esa-line', anatState.esaAmp, 60);
+
+        // Feedback contextual dinâmico sobre sobreposição
+        if (anatState.esaAmp > 15 && Math.abs(anatState.esaPos - 510) < 28 && anatState.seAmp > 10) {
+          anatomyInsight.innerHTML =
+            '<strong class="text-amber-300">Mascaramento da SE detectado!</strong> A banda positiva de ESA (~' +
+            anatState.esaPos +
+            ' nm) sobrepõe-se à Emissão Estimulada (510 nm), reduzindo ou invertendo o sinal negativo na curva branca total.';
+        } else if (anatState.esaAmp > 15 && Math.abs(anatState.esaPos - 405) < 28 && anatState.gsbAmp > 10) {
+          anatomyInsight.innerHTML =
+            '<strong class="text-cyan-300">Cancelamento parcial do GSB!</strong> A ESA positiva em ' +
+            anatState.esaPos +
+            ' nm compete diretamente com o despopulamento do estado fundamental (405 nm), distorcendo a profundidade aparente do GSB.';
+        } else {
+          anatomyInsight.innerHTML =
+            'Deslize <strong class="text-amber-300">Posição &lambda;<sub>ESA</sub></strong> para ~510 nm ou ~405 nm para observar como a soma algébrica desloca picos aparentes e pode ocultar bandas negativas reais.';
+        }
+      }
+
+      function drawAnatomyCanvas() {
+        if (!anatCanvas) return;
+        const { ctx, w, h } = prepCanvas(anatCanvas);
+        ctx.clearRect(0, 0, w, h);
+
+        const pad = { top: 18, right: 16, bottom: 36, left: 48 };
+        const pw = w - pad.left - pad.right;
+        const ph = h - pad.top - pad.bottom;
+
+        const minWl = 340, maxWl = 720;
+        const minY = -55, maxY = 65;
+        const xOf = (wl) => pad.left + ((wl - minWl) / (maxWl - minWl)) * pw;
+        const yOf = (v) => pad.top + ((maxY - v) / (maxY - minY)) * ph;
+        const y0 = yOf(0);
+
+        // Grade
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.1)';
+        ctx.lineWidth = 1;
+        [-40, -20, 0, 20, 40, 60].forEach((yv) => {
+          const y = yOf(yv);
+          ctx.beginPath();
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(w - pad.right, y);
+          ctx.stroke();
+
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '500 9.5px "JetBrains Mono", monospace';
+          ctx.textAlign = 'right';
+          ctx.fillText(yv > 0 ? `+${yv}` : `${yv}`, pad.left - 7, y + 3);
+        });
+
+        for (let wl = 350; wl <= 700; wl += 50) {
+          const x = xOf(wl);
+          ctx.beginPath();
+          ctx.moveTo(x, pad.top);
+          ctx.lineTo(x, h - pad.bottom);
+          ctx.stroke();
+
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '500 9.5px "JetBrains Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${wl}`, x, h - pad.bottom + 14);
+        }
+
+        // Linha do Zero
+        ctx.strokeStyle = 'rgba(226, 232, 240, 0.36)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y0);
+        ctx.lineTo(w - pad.right, y0);
+        ctx.stroke();
+
+        // Rótulos
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '600 10.5px "Inter", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Comprimento de Onda λ (nm)', pad.left + pw * 0.5, h - 5);
+
+        ctx.save();
+        ctx.translate(13, pad.top + ph * 0.5);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('ΔA (mOD)', 0, 0);
+        ctx.restore();
+
+        // Cálculo das bandas
+        const N = 220;
+        const wls = [], gsb = [], se = [], esa = [], tot = [];
+        for (let i = 0; i <= N; i++) {
+          const wl = minWl + (i / N) * (maxWl - minWl);
+          const g = -anatState.gsbAmp * (gaussian(wl, 405, 22) + 0.22 * gaussian(wl, 372, 13));
+          const s = -anatState.seAmp * (gaussian(wl, 510, 27) + 0.22 * gaussian(wl, 548, 25));
+          const e = anatState.esaAmp * gaussian(wl, anatState.esaPos, 28);
+          wls.push(wl);
+          gsb.push(g);
+          se.push(s);
+          esa.push(e);
+          tot.push(g + s + e);
+        }
+
+        function drawBand(arr, strokeCol, fillCol) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(xOf(wls[0]), y0);
+          for (let i = 0; i <= N; i++) ctx.lineTo(xOf(wls[i]), yOf(arr[i]));
+          ctx.lineTo(xOf(wls[N]), y0);
+          ctx.closePath();
+          ctx.fillStyle = fillCol;
+          ctx.fill();
+
+          ctx.beginPath();
+          for (let i = 0; i <= N; i++) {
+            const x = xOf(wls[i]), y = yOf(arr[i]);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.strokeStyle = strokeCol;
+          ctx.lineWidth = 1.6;
+          ctx.setLineDash([5, 4]);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        if (anatState.gsbAmp > 0) drawBand(gsb, '#22d3ee', 'rgba(34, 211, 238, 0.14)');
+        if (anatState.seAmp > 0) drawBand(se, '#34d399', 'rgba(52, 211, 153, 0.14)');
+        if (anatState.esaAmp > 0) drawBand(esa, '#fbbf24', 'rgba(251, 191, 36, 0.16)');
+
+        // Soma Total ΔA(λ)
+        ctx.save();
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.45)';
+        ctx.shadowBlur = 7;
+        ctx.beginPath();
+        for (let i = 0; i <= N; i++) {
+          const x = xOf(wls[i]), y = yOf(tot[i]);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.6;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      [ampGsbSlider, ampSeSlider, ampEsaSlider, posEsaSlider].forEach((sl) => {
+        sl.addEventListener('input', () => {
+          anatState.gsbAmp = Number(ampGsbSlider.value);
+          anatState.seAmp = Number(ampSeSlider.value);
+          anatState.esaAmp = Number(ampEsaSlider.value);
+          anatState.esaPos = Number(posEsaSlider.value);
+          syncAnatomyUI();
+          drawAnatomyCanvas();
+        });
+      });
+
+      document.querySelectorAll('.anat-preset').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const p = btn.getAttribute('data-anat-preset');
+          if (p === 'default') {
+            Object.assign(anatState, { gsbAmp: 34, seAmp: 28, esaAmp: 42, esaPos: 560 });
+          } else if (p === 'mask-se') {
+            Object.assign(anatState, { gsbAmp: 32, seAmp: 26, esaAmp: 46, esaPos: 515 });
+          } else if (p === 'mask-gsb') {
+            Object.assign(anatState, { gsbAmp: 34, seAmp: 24, esaAmp: 40, esaPos: 410 });
+          }
+          syncAnatomyUI();
+          drawAnatomyCanvas();
+        });
+      });
+
+      /* -------------------------------------------------------------------
+       * 5. SEÇÃO 4: SIMULADOR 2D ΔA(λ, τ) (3 CENÁRIOS + IRF + CHIRP + LIN/LOG)
+       * ------------------------------------------------------------------- */
+      const mapCanvas = document.getElementById('map2d-canvas');
+      const specCanvas = document.getElementById('spectral-canvas');
+      const kinCanvas = document.getElementById('kinetic-canvas');
+
+      const scenDescEl = document.getElementById('scen-desc');
+      const scenBadgesEl = document.getElementById('scen-badges');
+      const wlQuickBar = document.getElementById('wl-quick-bar');
+      const mapScaleSub = document.getElementById('map-scale-subtitle');
+
+      const simIrfSlider = document.getElementById('sim-irf-slider');
+      const simIrfLabel = document.getElementById('sim-irf-label');
+      const simChirpBtn = document.getElementById('sim-chirp-btn');
+      const chirpDot = document.getElementById('chirp-dot');
+      const chirpStateTxt = document.getElementById('chirp-state-txt');
+      const simPlayBtn = document.getElementById('sim-play-btn');
+      const simPlayIcon = document.getElementById('sim-play-icon');
+      const simPlayTxt = document.getElementById('sim-play-txt');
+
+      const simTauSlider = document.getElementById('sim-tau-slider');
+      const simWlSlider = document.getElementById('sim-wl-slider');
+      const simTauLabel = document.getElementById('sim-tau-label');
+      const simWlLabel = document.getElementById('sim-wl-label');
+      const simDaVal = document.getElementById('sim-da-val');
+      const sliceTauTxt = document.getElementById('slice-tau-txt');
+      const kinWlTxt = document.getElementById('kin-wl-txt');
+      const kinT0Txt = document.getElementById('kin-t0-txt');
+      const simGuidesCb = document.getElementById('sim-guides-cb');
+
+      const simState = {
+        scenario: 'ict',     // 'ict' | 'esipt' | 'isc'
+        scaleMode: 'hybrid', // 'hybrid' | 'linear'
+        irfFwhmFs: 120,      // 30 .. 250 fs
+        chirpOn: false,
+        tau: 0.6,
+        wl: 535,
+        playing: false,
+        showGuides: true,
+        dragging: false,
+      };
+
+      // Parâmetros das duas escalas temporais
+      const HYB_MIN = -0.5, HYB_BREAK = 2.0, HYB_MAX = 500.0, HYB_SPLIT = 0.44;
+      const LIN_MIN = -1.0, LIN_MAX = 50.0;
+
+      function normToTau(u) {
+        const c = Math.max(0, Math.min(1, u));
+        if (simState.scaleMode === 'linear') {
+          return LIN_MIN + c * (LIN_MAX - LIN_MIN);
+        }
+        if (c <= HYB_SPLIT) {
+          return HYB_MIN + (c / HYB_SPLIT) * (HYB_BREAK - HYB_MIN);
+        }
+        const v = (c - HYB_SPLIT) / (1 - HYB_SPLIT);
+        return HYB_BREAK * Math.pow(HYB_MAX / HYB_BREAK, v);
+      }
+
+      function tauToNorm(tau) {
+        if (simState.scaleMode === 'linear') {
+          const c = Math.max(LIN_MIN, Math.min(LIN_MAX, tau));
+          return (c - LIN_MIN) / (LIN_MAX - LIN_MIN);
+        }
+        const c = Math.max(HYB_MIN, Math.min(HYB_MAX, tau));
+        if (c <= HYB_BREAK) {
+          return ((c - HYB_MIN) / (HYB_BREAK - HYB_MIN)) * HYB_SPLIT;
+        }
+        return HYB_SPLIT + (Math.log(c / HYB_BREAK) / Math.log(HYB_MAX / HYB_BREAK)) * (1 - HYB_SPLIT);
+      }
+
+      // Curvatura parabólica realista de Chirp do WLC (dispersão de velocidade de grupo)
+      function chirpOffset(wl) {
+        if (!simState.chirpOn) return 0;
+        const u = (750 - wl) / 400; // 0 no vermelho (750 nm) -> 1 no UV (350 nm)
+        return 1.15 * u * u - 0.26; // atraso t0(λ) em ps (~1,15 ps de chirp total)
+      }
+
+      function currentIrfSigmaPs() {
+        return (simState.irfFwhmFs / 1000) / 2.354820045;
+      }
+
+      // Os 3 Cenários Moleculares Realistas
+      const simScenarios = {
+        ict: {
+          desc: '<strong class="text-cyan-300">ICT &amp; Relaxação (Sem ESIPT):</strong> Baseado em derivados push–pull HBO com ESIPT suprimido. Apresenta GSB (~395 nm), SE negativa (~505 nm) nos instantes iniciais e ESA intensa que sofre <em>blue-shift</em> de ~560 nm para ~535 nm em <strong>1,4 ps</strong> (resfriamento vibracional/solvatação), sobrepondo-se à SE, seguido por relaxação estrutural em <strong>7 ps</strong> e decaimento em <strong>2,5 ns</strong>.',
+          badges: [
+            { txt: 'τ₁ = 1,4 ps (Blue-shift/Solv.)', cls: 'border-cyan-500/35 bg-cyan-500/10 text-cyan-300' },
+            { txt: 'τ₂ = 7,0 ps (Relax. Estrut.)', cls: 'border-violet-500/35 bg-violet-500/10 text-violet-300' },
+            { txt: 'τ₃ = 2,5 ns (S₁ → S₀)', cls: 'border-amber-500/35 bg-amber-500/10 text-amber-300' },
+          ],
+          quickWls: [
+            { wl: 395, lbl: '395 GSB' },
+            { wl: 505, lbl: '505 SE' },
+            { wl: 535, lbl: '535 ESA' },
+            { wl: 565, lbl: '565 ESA₀' },
+          ],
+          defaultWl: 535,
+          defaultTau: 0.6,
+          eval(wl, tauEff, sigma) {
+            const popS1 = irfExp(tauEff, 2500, sigma);
+            const cool = irfExp(tauEff, 1.4, sigma);
+            const relax = irfExp(tauEff, 7.0, sigma);
+            const step = irfStep(tauEff, sigma);
+
+            const gsb = -32 * gaussian(wl, 395, 21) * popS1;
+            const se = -24 * gaussian(wl, 505, 23) * popS1;
+
+            const shiftFrac = step > 1e-4 ? Math.min(1, cool / Math.max(1e-4, step)) : 1;
+            const esaCenter = 535 + 26 * shiftFrac;
+            const esaAmp = 34 * popS1 + 14 * cool + 9 * relax;
+            const esa1 = esaAmp * gaussian(wl, esaCenter, 22);
+            const esa2 = 8.5 * popS1 * gaussian(wl, 675, 36);
+            return gsb + se + esa1 + esa2;
+          },
+          absLinear(wl) { return 34 * gaussian(wl, 395, 21) + 11 * gaussian(wl, 355, 14); },
+          fluorLinear(wl) { return 30 * gaussian(wl, 505, 25); },
+        },
+
+        esipt: {
+          desc: '<strong class="text-emerald-300">ESIPT (E* &rarr; K*):</strong> Transferência intramolecular de próton ultrarrápida em <strong>0,35 ps</strong> (350 fs). A SE do enol E* (~415 nm) decai abruptamente enquanto emerge a SE deslocada para o vermelho do tautômero ceto K* (~520 nm) e a banda ESA de K* (~620 nm). Experimente aumentar a <strong>IRF para 240 fs</strong> e note o borramento da dinâmica inicial!',
+          badges: [
+            { txt: 'τ_ESIPT = 0,35 ps (E* → K*)', cls: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300' },
+            { txt: 'τ_cool = 2,5 ps (Resfr. K*)', cls: 'border-cyan-500/35 bg-cyan-500/10 text-cyan-300' },
+            { txt: 'τ_K* = 1,7 ns (Decaim. K*)', cls: 'border-amber-500/35 bg-amber-500/10 text-amber-300' },
+          ],
+          quickWls: [
+            { wl: 368, lbl: '368 GSB' },
+            { wl: 415, lbl: '415 SE E*' },
+            { wl: 520, lbl: '520 SE K*' },
+            { wl: 620, lbl: '620 ESA K*' },
+          ],
+          defaultWl: 520,
+          defaultTau: 0.35,
+          eval(wl, tauEff, sigma) {
+            const tauE = 0.35, tauK = 1700;
+            const popTot = irfExp(tauEff, tauK, sigma);
+            const popE = irfExp(tauEff, tauE, sigma);
+            const popK = Math.max(0, (tauK / (tauK - tauE)) * (popTot - popE));
+            const cool = irfExp(tauEff, 2.5, sigma);
+
+            const gsb = -30 * gaussian(wl, 368, 18) * popTot;
+            const seE = -30 * gaussian(wl, 415, 17) * popE;
+            const esaE = 28 * gaussian(wl, 560, 24) * popE;
+
+            const seKCenter = 522 - 7 * (popTot > 1e-4 ? Math.min(1, cool / Math.max(1e-4, popTot)) : 0);
+            const seK = -33 * gaussian(wl, seKCenter, 28) * popK;
+            const esaK = (40 * popK + 7 * Math.max(0, cool - popE)) * gaussian(wl, 620, 28);
+            const esaK2 = 16 * popK * gaussian(wl, 462, 18);
+            return gsb + seE + esaE + seK + esaK + esaK2;
+          },
+          absLinear(wl) { return 33 * gaussian(wl, 368, 18); },
+          fluorLinear(wl) { return 32 * gaussian(wl, 522, 29) + 5 * gaussian(wl, 415, 17); },
+        },
+
+        isc: {
+          desc: '<strong class="text-rose-300">Cruzamento Intersistema (S<sub>1</sub> &rarr; T<sub>1</sub>):</strong> A população singleto S<sub>1</sub> (GSB ~420 nm, SE ~515 nm e ESA singleto ~575 nm) decai em <strong>18 ps</strong> com rendimento de tripleto &Phi;<sub>T</sub> = 72%, alimentando uma banda intensa de ESA tripleto (T<sub>1</sub> &rarr; T<sub>n</sub> em ~660 nm) que forma um <strong>platô de longa duração</strong> além de 500 ps e mantém o GSB parcialmente populado.',
+          badges: [
+            { txt: 'τ_ISC = 18 ps (S₁ → T₁)', cls: 'border-rose-500/40 bg-rose-500/15 text-rose-300' },
+            { txt: 'Φ_T = 72% (Platô T₁)', cls: 'border-amber-500/35 bg-amber-500/10 text-amber-300' },
+            { txt: 'τ_T₁ ≫ 500 ps (Longa vida)', cls: 'border-violet-500/35 bg-violet-500/10 text-violet-300' },
+          ],
+          quickWls: [
+            { wl: 420, lbl: '420 GSB' },
+            { wl: 515, lbl: '515 SE S₁' },
+            { wl: 575, lbl: '575 ESA S₁' },
+            { wl: 660, lbl: '660 ESA T₁' },
+          ],
+          defaultWl: 660,
+          defaultTau: 20.0,
+          eval(wl, tauEff, sigma) {
+            const tauS1 = 18.0;
+            const tauT1 = 60000.0; // 60 ns (platô na janela de 500 ps)
+            const phiT = 0.72;
+
+            const popS1 = irfExp(tauEff, tauS1, sigma);
+            const popT1 = phiT * (tauT1 / (tauT1 - tauS1)) * Math.max(0, irfExp(tauEff, tauT1, sigma) - popS1);
+            const popExcited = popS1 + popT1;
+
+            // GSB recupera apenas 28% e permanece em platô de 72%
+            const gsb = -34 * gaussian(wl, 420, 21) * popExcited;
+            const seS1 = -26 * gaussian(wl, 515, 22) * popS1;
+            const esaS1 = 38 * gaussian(wl, 575, 24) * popS1;
+            const esaT1 = 44 * gaussian(wl, 660, 29) * popT1;
+            return gsb + seS1 + esaS1 + esaT1;
+          },
+          absLinear(wl) { return 34 * gaussian(wl, 420, 21); },
+          fluorLinear(wl) { return 28 * gaussian(wl, 515, 23); },
+        },
+      };
+
+      function evalSimDeltaA(wl, tau) {
+        const scen = simScenarios[simState.scenario];
+        const sigma = currentIrfSigmaPs();
+        const tauEff = tau - chirpOffset(wl);
+        return scen.eval(wl, tauEff, sigma);
+      }
+
+      // Paleta divergente científica (-42 .. +48 mOD): azul/ciano -> quase preto -> amarelo/laranja/vermelho
+      function colorForDeltaA(val) {
+        const v = Math.max(-42, Math.min(48, val));
+        if (v < 0) {
+          const t = Math.min(1, Math.abs(v) / 38);
+          if (t < 0.45) {
+            const u = t / 0.45;
+            return [
+              Math.round(9 + u * (2 - 9)),
+              Math.round(14 + u * (102 - 14)),
+              Math.round(28 + u * (162 - 28)),
+            ];
+          }
+          const u = (t - 0.45) / 0.55;
+          return [
+            Math.round(2 + u * (103 - 2)),
+            Math.round(102 + u * (232 - 102)),
+            Math.round(162 + u * (249 - 162)),
+          ];
+        } else {
+          const t = Math.min(1, v / 45);
+          if (t < 0.32) {
+            const u = t / 0.32;
+            return [
+              Math.round(9 + u * (153 - 9)),
+              Math.round(14 + u * (45 - 14)),
+              Math.round(28 + u * (16 - 28)),
+            ];
+          } else if (t < 0.70) {
+            const u = (t - 0.32) / 0.38;
+            return [
+              Math.round(153 + u * (249 - 153)),
+              Math.round(45 + u * (115 - 45)),
+              Math.round(16 + u * (22 - 16)),
+            ];
+          }
+          const u = (t - 0.70) / 0.30;
+          return [
+            Math.round(249 + u * (254 - 249)),
+            Math.round(115 + u * (240 - 115)),
+            Math.round(22 + u * (138 - 22)),
+          ];
+        }
+      }
+
+      // Buffer offscreen do mapa 2D para arraste fluido a 60fps
+      const mapBuf = document.createElement('canvas');
+      mapBuf.width = 210;
+      mapBuf.height = 175;
+
+      function rebuildMapBuffer() {
+        const ctx = mapBuf.getContext('2d');
+        const img = ctx.createImageData(mapBuf.width, mapBuf.height);
+        const d = img.data;
+        const W = mapBuf.width, H = mapBuf.height;
+
+        for (let py = 0; py < H; py++) {
+          const u = 1 - py / (H - 1);
+          const tau = normToTau(u);
+          for (let px = 0; px < W; px++) {
+            const wl = 350 + (px / (W - 1)) * 400;
+            const [r, g, b] = colorForDeltaA(evalSimDeltaA(wl, tau));
+            const i = (py * W + px) * 4;
+            d[i] = r; d[i + 1] = g; d[i + 2] = b; d[i + 3] = 255;
+          }
+        }
+        ctx.putImageData(img, 0, 0);
+      }
+
+      let mapRect = { left: 52, top: 18, width: 200, height: 200 };
+
+      function getTimeTicks() {
+        if (simState.scaleMode === 'linear') {
+          return [
+            { t: 0, lbl: '0' },
+            { t: 10, lbl: '10' },
+            { t: 20, lbl: '20' },
+            { t: 30, lbl: '30' },
+            { t: 40, lbl: '40' },
+            { t: 50, lbl: '50' },
+          ];
+        }
+        return [
+          { t: -0.5, lbl: '−0,5' },
+          { t: 0, lbl: '0' },
+          { t: 0.5, lbl: '0,5' },
+          { t: 1, lbl: '1' },
+          { t: 2, lbl: '2' },
+          { t: 10, lbl: '10' },
+          { t: 50, lbl: '50' },
+          { t: 200, lbl: '200' },
+          { t: 500, lbl: '500' },
+        ];
+      }
+
+      function drawMap2D() {
+        if (!mapCanvas) return;
+        const { ctx, w, h } = prepCanvas(mapCanvas);
+        ctx.clearRect(0, 0, w, h);
+
+        const pad = { top: 18, right: 56, bottom: 38, left: 52 };
+        const pw = Math.max(40, w - pad.left - pad.right);
+        const ph = Math.max(40, h - pad.top - pad.bottom);
+        mapRect = { left: pad.left, top: pad.top, width: pw, height: ph };
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(mapBuf, pad.left, pad.top, pw, ph);
+
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(pad.left, pad.top, pw, ph);
+
+        const xOf = (wl) => pad.left + ((wl - 350) / 400) * pw;
+        const yOf = (tau) => pad.top + (1 - tauToNorm(tau)) * ph;
+
+        // Linha divisória Lin–Log em τ = 2 ps
+        if (simState.scaleMode === 'hybrid') {
+          const yBrk = yOf(HYB_BREAK);
+          ctx.save();
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.42)';
+          ctx.setLineDash([4, 4]);
+          ctx.lineWidth = 1.1;
+          ctx.beginPath();
+          ctx.moveTo(pad.left, yBrk);
+          ctx.lineTo(pad.left + pw, yBrk);
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(226, 232, 240, 0.72)';
+          ctx.font = '600 9px "JetBrains Mono", monospace';
+          ctx.textAlign = 'right';
+          ctx.fillText('▲ log  |  ▼ linear (2 ps)', pad.left + pw - 5, yBrk - 4);
+          ctx.restore();
+        }
+
+        // Curva guia de Chirp t0(λ) quando Chirp estiver ON
+        if (simState.chirpOn) {
+          ctx.save();
+          ctx.beginPath();
+          for (let i = 0; i <= 80; i++) {
+            const wl = 350 + (i / 80) * 400;
+            const y = yOf(chirpOffset(wl));
+            if (i === 0) ctx.moveTo(xOf(wl), y);
+            else ctx.lineTo(xOf(wl), y);
+          }
+          ctx.strokeStyle = 'rgba(251, 113, 133, 0.85)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 3]);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Ticks X
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '500 9.5px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        for (let wl = 350; wl <= 750; wl += 50) {
+          const x = xOf(wl);
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+          ctx.beginPath();
+          ctx.moveTo(x, pad.top + ph);
+          ctx.lineTo(x, pad.top + ph + 4);
+          ctx.stroke();
+          ctx.fillText(`${wl}`, x, pad.top + ph + 15);
+        }
+
+        // Ticks Y
+        ctx.textAlign = 'right';
+        getTimeTicks().forEach((tk) => {
+          const y = yOf(tk.t);
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+          ctx.beginPath();
+          ctx.moveTo(pad.left - 4, y);
+          ctx.lineTo(pad.left, y);
+          ctx.stroke();
+          ctx.fillStyle = tk.t === 0 ? '#c4b5fd' : '#94a3b8';
+          ctx.fillText(tk.lbl, pad.left - 7, y + 3.5);
+        });
+
+        // Rótulos de eixo
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '600 10.5px "Inter", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Comprimento de Onda λ (nm)', pad.left + pw * 0.5, h - 6);
+
+        ctx.save();
+        ctx.translate(13, pad.top + ph * 0.5);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('Atraso Temporal τ (ps)', 0, 0);
+        ctx.restore();
+
+        // Colorbar em mOD
+        const cbX = pad.left + pw + 11;
+        const cbW = 11;
+        for (let py = 0; py < ph; py++) {
+          const val = 45 - (py / ph) * 85;
+          const [r, g, b] = colorForDeltaA(val);
+          ctx.fillStyle = `rgb(${r},${g},${b})`;
+          ctx.fillRect(cbX, pad.top + py, cbW, 1.5);
+        }
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+        ctx.strokeRect(cbX, pad.top, cbW, ph);
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '500 9px "JetBrains Mono", monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('+45', cbX + cbW + 4, pad.top + 8);
+        ctx.fillText('0', cbX + cbW + 4, pad.top + ph * (45 / 85) + 3);
+        ctx.fillText('−40', cbX + cbW + 4, pad.top + ph - 1);
+        ctx.fillText('mOD', cbX - 1, pad.top - 5);
+
+        // Mira (Crosshair)
+        const cx = xOf(simState.wl);
+        const cy = yOf(simState.tau);
+        ctx.save();
+        ctx.strokeStyle = 'rgba(34, 211, 238, 0.92)';
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([5, 3]);
+        ctx.beginPath();
+        ctx.moveTo(pad.left, cy);
+        ctx.lineTo(pad.left + pw, cy);
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.92)';
+        ctx.beginPath();
+        ctx.moveTo(cx, pad.top);
+        ctx.lineTo(cx, pad.top + ph);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#060911';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawSpectralSlice() {
+        if (!specCanvas) return;
+        const { ctx, w, h } = prepCanvas(specCanvas);
+        ctx.clearRect(0, 0, w, h);
+
+        const pad = { top: 14, right: 16, bottom: 30, left: 46 };
+        const pw = w - pad.left - pad.right;
+        const ph = h - pad.top - pad.bottom;
+
+        const minY = -44, maxY = 52;
+        const xOf = (wl) => pad.left + ((wl - 350) / 400) * pw;
+        const yOf = (v) => pad.top + ((maxY - v) / (maxY - minY)) * ph;
+        const y0 = yOf(0);
+        const scen = simScenarios[simState.scenario];
+
+        // Grade
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.1)';
+        ctx.lineWidth = 1;
+        [-40, -20, 0, 20, 40].forEach((yv) => {
+          const y = yOf(yv);
+          ctx.beginPath();
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(w - pad.right, y);
+          ctx.stroke();
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '500 9px "JetBrains Mono", monospace';
+          ctx.textAlign = 'right';
+          ctx.fillText(yv > 0 ? `+${yv}` : `${yv}`, pad.left - 6, y + 3);
+        });
+
+        for (let wl = 350; wl <= 750; wl += 50) {
+          const x = xOf(wl);
+          ctx.beginPath();
+          ctx.moveTo(x, pad.top);
+          ctx.lineTo(x, h - pad.bottom);
+          ctx.stroke();
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '500 9px "JetBrains Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${wl}`, x, h - pad.bottom + 13);
+        }
+
+        // Linha zero
+        ctx.strokeStyle = 'rgba(226, 232, 240, 0.35)';
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y0);
+        ctx.lineTo(w - pad.right, y0);
+        ctx.stroke();
+
+        // Guias estacionárias invertidas (Absorção e Fluorescência)
+        if (simState.showGuides) {
+          ctx.save();
+          ctx.setLineDash([4, 4]);
+          ctx.lineWidth = 1.3;
+
+          ctx.beginPath();
+          for (let i = 0; i <= 150; i++) {
+            const wl = 350 + (i / 150) * 400;
+            const y = yOf(-scen.absLinear(wl));
+            if (i === 0) ctx.moveTo(xOf(wl), y);
+            else ctx.lineTo(xOf(wl), y);
+          }
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.55)';
+          ctx.stroke();
+
+          ctx.beginPath();
+          for (let i = 0; i <= 150; i++) {
+            const wl = 350 + (i / 150) * 400;
+            const y = yOf(-scen.fluorLinear(wl));
+            if (i === 0) ctx.moveTo(xOf(wl), y);
+            else ctx.lineTo(xOf(wl), y);
+          }
+          ctx.strokeStyle = 'rgba(52, 211, 153, 0.62)';
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Curva ΔA(λ)
+        const N = 200;
+        const pts = [];
+        for (let i = 0; i <= N; i++) {
+          const wl = 350 + (i / N) * 400;
+          pts.push({ x: xOf(wl), y: yOf(evalSimDeltaA(wl, simState.tau)) });
+        }
+
+        // Preenchimento positivo (âmbar) e negativo (ciano)
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(pad.left, pad.top, pw, y0 - pad.top);
+        ctx.clip();
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, y0);
+        pts.forEach((p) => ctx.lineTo(p.x, p.y));
+        ctx.lineTo(pts[N].x, y0);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.22)';
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(pad.left, y0, pw, h - pad.bottom - y0);
+        ctx.clip();
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, y0);
+        pts.forEach((p) => ctx.lineTo(p.x, p.y));
+        ctx.lineTo(pts[N].x, y0);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(34, 211, 238, 0.22)';
+        ctx.fill();
+        ctx.restore();
+
+        ctx.beginPath();
+        pts.forEach((p, idx) => (idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 2.2;
+        ctx.stroke();
+
+        // Marcador de λ selecionado
+        const xSel = xOf(simState.wl);
+        const ySel = yOf(evalSimDeltaA(simState.wl, simState.tau));
+        ctx.save();
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.85)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(xSel, pad.top);
+        ctx.lineTo(xSel, h - pad.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(xSel, ySel, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '600 9.5px "Inter", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Comprimento de Onda λ (nm)', pad.left + pw * 0.5, h - 4);
+      }
+
+      function drawKineticTrace() {
+        if (!kinCanvas) return;
+        const { ctx, w, h } = prepCanvas(kinCanvas);
+        ctx.clearRect(0, 0, w, h);
+
+        const pad = { top: 14, right: 16, bottom: 30, left: 46 };
+        const pw = w - pad.left - pad.right;
+        const ph = h - pad.top - pad.bottom;
+
+        const minY = -44, maxY = 52;
+        const xOf = (tau) => pad.left + tauToNorm(tau) * pw;
+        const yOf = (v) => pad.top + ((maxY - v) / (maxY - minY)) * ph;
+        const y0 = yOf(0);
+
+        // Grade Y
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.1)';
+        ctx.lineWidth = 1;
+        [-40, -20, 0, 20, 40].forEach((yv) => {
+          const y = yOf(yv);
+          ctx.beginPath();
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(w - pad.right, y);
+          ctx.stroke();
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '500 9px "JetBrains Mono", monospace';
+          ctx.textAlign = 'right';
+          ctx.fillText(yv > 0 ? `+${yv}` : `${yv}`, pad.left - 6, y + 3);
+        });
+
+        // Ticks X
+        getTimeTicks().forEach((tk) => {
+          const x = xOf(tk.t);
+          const isBreak = simState.scaleMode === 'hybrid' && tk.t === HYB_BREAK;
+          ctx.strokeStyle = isBreak ? 'rgba(255, 255, 255, 0.35)' : 'rgba(148, 163, 184, 0.1)';
+          if (isBreak) ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(x, pad.top);
+          ctx.lineTo(x, h - pad.bottom);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.fillStyle = tk.t === 0 ? '#c4b5fd' : '#94a3b8';
+          ctx.font = '500 9px "JetBrains Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(tk.lbl, x, h - pad.bottom + 13);
+        });
+
+        // Linha zero
+        ctx.strokeStyle = 'rgba(226, 232, 240, 0.35)';
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y0);
+        ctx.lineTo(w - pad.right, y0);
+        ctx.stroke();
+
+        // Linha t0 efetivo quando Chirp está ligado
+        if (simState.chirpOn) {
+          const xt0 = xOf(chirpOffset(simState.wl));
+          ctx.save();
+          ctx.strokeStyle = 'rgba(251, 113, 133, 0.75)';
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(xt0, pad.top);
+          ctx.lineTo(xt0, h - pad.bottom);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Traço Cinético ΔA(τ)
+        const N = 220;
+        ctx.beginPath();
+        for (let i = 0; i <= N; i++) {
+          const u = i / N;
+          const tau = normToTau(u);
+          const x = pad.left + u * pw;
+          const y = yOf(evalSimDeltaA(simState.wl, tau));
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 2.3;
+        ctx.stroke();
+
+        // Marcador vertical de τ atual
+        const xSel = xOf(simState.tau);
+        const ySel = yOf(evalSimDeltaA(simState.wl, simState.tau));
+        ctx.save();
+        ctx.strokeStyle = 'rgba(34, 211, 238, 0.9)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(xSel, pad.top);
+        ctx.lineTo(xSel, h - pad.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#22d3ee';
+        ctx.beginPath();
+        ctx.arc(xSel, ySel, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '600 9.5px "Inter", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(
+          simState.scaleMode === 'hybrid'
+            ? 'Atraso τ (ps — linear até 2 ps | log até 500 ps)'
+            : 'Atraso τ (ps — escala linear 0 a 50 ps)',
+          pad.left + pw * 0.5,
+          h - 4
+        );
+      }
+
+      function updateSimulatorViews() {
+        const da = evalSimDeltaA(simState.wl, simState.tau);
+        const tStr = formatTau(simState.tau);
+
+        simTauLabel.textContent = tStr;
+        sliceTauTxt.textContent = `τ = ${tStr}`;
+        simWlLabel.textContent = `${Math.round(simState.wl)} nm`;
+        kinWlTxt.textContent = `λ = ${Math.round(simState.wl)} nm`;
+
+        if (simState.chirpOn) {
+          kinT0Txt.classList.remove('hidden');
+          kinT0Txt.textContent = `• t₀(λ) = ${formatTau(chirpOffset(simState.wl))}`;
+        } else {
+          kinT0Txt.classList.add('hidden');
+        }
+
+        const sign = da >= 0 ? '+' : '−';
+        simDaVal.textContent = `${sign}${formatPT(Math.abs(da), 1)} mOD`;
+        simDaVal.className = `font-bold ${da > 0.5 ? 'text-amber-300' : da < -0.5 ? 'text-cyan-300' : 'text-slate-300'}`;
+
+        simTauSlider.value = Math.round(tauToNorm(simState.tau) * 1000);
+        simWlSlider.value = Math.round(simState.wl);
+
+        drawMap2D();
+        drawSpectralSlice();
+        drawKineticTrace();
+      }
+
+      function selectScenario(key) {
+        simState.scenario = key;
+        const sc = simScenarios[key];
+        simState.wl = sc.defaultWl;
+        simState.tau = sc.defaultTau;
+
+        const tabColors = {
+          ict: 'bg-cyan-400 text-slate-950 shadow',
+          esipt: 'bg-emerald-400 text-slate-950 shadow',
+          isc: 'bg-rose-400 text-slate-950 shadow',
+        };
+        document.querySelectorAll('.scen-tab').forEach((btn) => {
+          const k = btn.getAttribute('data-scen');
+          btn.className =
+            k === key
+              ? `scen-tab rounded-lg px-3.5 py-2 text-xs font-semibold transition-all ${tabColors[k]}`
+              : 'scen-tab rounded-lg px-3.5 py-2 text-xs font-semibold transition-all text-slate-300 hover:text-white hover:bg-slate-800';
+        });
+
+        scenDescEl.innerHTML = sc.desc;
+        scenBadgesEl.innerHTML = sc.badges
+          .map((b) => `<span class="rounded-lg border px-2.5 py-1 font-mono text-[10.5px] ${b.cls}">${b.txt}</span>`)
+          .join('');
+
+        wlQuickBar.innerHTML = sc.quickWls
+          .map(
+            (q) =>
+              `<button data-qwl="${q.wl}" class="rounded-md border border-slate-700/80 bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-slate-300 hover:border-amber-400/60 hover:text-amber-200 transition-colors">${q.lbl}</button>`
+          )
+          .join('');
+
+        wlQuickBar.querySelectorAll('button').forEach((b) => {
+          b.addEventListener('click', () => {
+            simState.wl = Number(b.getAttribute('data-qwl'));
+            updateSimulatorViews();
+          });
+        });
+
+        rebuildMapBuffer();
+        updateSimulatorViews();
+      }
+
+      document.querySelectorAll('.scen-tab').forEach((btn) => {
+        btn.addEventListener('click', () => selectScenario(btn.getAttribute('data-scen')));
+      });
+
+      document.querySelectorAll('.scale-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          simState.scaleMode = btn.getAttribute('data-scale');
+          document.querySelectorAll('.scale-btn').forEach((b) => {
+            const on = b === btn;
+            b.className = on
+              ? 'scale-btn rounded-lg py-1.5 px-2 font-mono text-[11px] font-semibold bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 transition-all'
+              : 'scale-btn rounded-lg py-1.5 px-2 font-mono text-[11px] font-semibold text-slate-400 hover:text-white border border-transparent transition-all';
+          });
+          mapScaleSub.textContent =
+            simState.scaleMode === 'hybrid'
+              ? 'Híbrido: linear (−0,5 a 2 ps) | log (2 a 500 ps)'
+              : 'Escala estritamente linear (−1 a 50 ps)';
+
+          // Garante τ dentro dos limites da escala ativa
+          if (simState.scaleMode === 'linear' && simState.tau > LIN_MAX) simState.tau = 20;
+          rebuildMapBuffer();
+          updateSimulatorViews();
+        });
+      });
+
+      simIrfSlider.addEventListener('input', () => {
+        simState.irfFwhmFs = Number(simIrfSlider.value);
+        simIrfLabel.textContent = `${simState.irfFwhmFs} fs`;
+        rebuildMapBuffer();
+        updateSimulatorViews();
+      });
+
+      simChirpBtn.addEventListener('click', () => {
+        simState.chirpOn = !simState.chirpOn;
+        if (simState.chirpOn) {
+          simChirpBtn.className = 'inline-flex items-center gap-2 rounded-xl border border-rose-400/60 bg-rose-500/15 px-3.5 py-2 text-xs font-semibold text-rose-200 transition-all';
+          chirpDot.className = 'h-2 w-2 rounded-full bg-rose-400 shadow-[0_0_8px_#fb7185]';
+          chirpStateTxt.textContent = 'ON';
+        } else {
+          simChirpBtn.className = 'inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-[#060911] px-3.5 py-2 text-xs font-semibold text-slate-300 hover:border-rose-400/60 hover:text-rose-200 transition-all';
+          chirpDot.className = 'h-2 w-2 rounded-full bg-slate-500';
+          chirpStateTxt.textContent = 'OFF';
+        }
+        rebuildMapBuffer();
+        updateSimulatorViews();
+      });
+
+      function syncSimPlayBtn() {
+        simPlayIcon.innerHTML = simState.playing ? '&#10074;&#10074;' : '&#9654;';
+        simPlayTxt.textContent = simState.playing ? 'Pausar' : 'Play τ';
+      }
+
+      simPlayBtn.addEventListener('click', () => {
+        simState.playing = !simState.playing;
+        if (simState.playing && tauToNorm(simState.tau) > 0.96) {
+          simState.tau = normToTau(0);
+        }
+        syncSimPlayBtn();
+      });
+
+      simTauSlider.addEventListener('input', () => {
+        simState.playing = false;
+        syncSimPlayBtn();
+        simState.tau = normToTau(Number(simTauSlider.value) / 1000);
+        updateSimulatorViews();
+      });
+
+      simWlSlider.addEventListener('input', () => {
+        simState.wl = Number(simWlSlider.value);
+        updateSimulatorViews();
+      });
+
+      simGuidesCb.addEventListener('change', () => {
+        simState.showGuides = simGuidesCb.checked;
+        drawSpectralSlice();
+      });
+
+      // Interação Mouse + Toque no Mapa 2D
+      function updateMapFromClient(cx, cy) {
+        const rect = mapCanvas.getBoundingClientRect();
+        const uX = Math.max(0, Math.min(1, (cx - rect.left - mapRect.left) / mapRect.width));
+        const uY = Math.max(0, Math.min(1, 1 - (cy - rect.top - mapRect.top) / mapRect.height));
+        simState.wl = Math.round(350 + uX * 400);
+        simState.tau = normToTau(uY);
+        updateSimulatorViews();
+      }
+
+      mapCanvas.addEventListener('mousedown', (e) => {
+        simState.dragging = true;
+        simState.playing = false;
+        syncSimPlayBtn();
+        updateMapFromClient(e.clientX, e.clientY);
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (simState.dragging) updateMapFromClient(e.clientX, e.clientY);
+      });
+      window.addEventListener('mouseup', () => { simState.dragging = false; });
+
+      mapCanvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 0) {
+          e.preventDefault();
+          simState.dragging = true;
+          simState.playing = false;
+          syncSimPlayBtn();
+          updateMapFromClient(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: false });
+      mapCanvas.addEventListener('touchmove', (e) => {
+        if (simState.dragging && e.touches.length > 0) {
+          e.preventDefault();
+          updateMapFromClient(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: false });
+      mapCanvas.addEventListener('touchend', () => { simState.dragging = false; });
+
+      /* -------------------------------------------------------------------
+       * 6. SEÇÃO 5: LINHA DO TEMPO + COMPARADOR VISUAL DADS vs. EADS
+       * ------------------------------------------------------------------- */
+      const timelineItems = [
+        {
+          id: 'coherent',
+          range: '< 100 fs',
+          short: 'Coerência & ESIPT Ultrarrápido',
+          color: 'violet',
+          title: 'Regime Coerente, IRF e Transferência de Próton Sub-100 fs',
+          desc: 'Nos primeiros instantes após a fotoexcitação, pacotes de onda eletrônicos e vibracionais evoluem de forma coerente. Em sistemas ESIPT sem barreira energética, o salto do próton pode ocorrer em 30–80 fs — frequentemente abaixo da IRF de um OPA convencional (~150–240 fs), exigindo amplificadores não colineares (NOPA) para resolução direta.',
+          sig: 'Artefato coerente próximo a τ = 0 ps e tempo de subida limitado pela IRF.',
+        },
+        {
+          id: 'esipt-ict',
+          range: '0,2 – 1 ps',
+          short: 'ESIPT & ICT Primária',
+          color: 'emerald',
+          title: 'ESIPT (E* → K*) e Transferência Intramolecular de Carga (ICT)',
+          desc: 'Escala clássica em que a transferência de próton assistida por solvente ou a redistribuição de carga em cromóforos push–pull converte o estado localmente excitado (LE / E*) no estado tautomérico (K*) ou de transferência de carga (ICT).',
+          sig: 'Decaimento rápido da SE/ESA de E* acompanhado pelo surgimento simultâneo da SE/ESA de K*.',
+        },
+        {
+          id: 'solvation',
+          range: '1 – 10 ps',
+          short: 'Resfriamento & Solvatação',
+          color: 'cyan',
+          title: 'Resfriamento Vibracional, Solvatação e Relaxação Conformacional',
+          desc: 'O excesso de energia vibracional dissipa-se para o solvente enquanto as moléculas do meio se reorientam em torno do novo dipolo excitado. Em paralelo, ajustes torsionais ou planarizações conformacionais acomodam a geometria em S₁.',
+          sig: 'Deslocamento espectral dinâmico (blue-shift da ESA e red-shift da SE) e estreitamento de bandas.',
+        },
+        {
+          id: 'isc',
+          range: '10 – 500 ps',
+          short: 'ISC & Transferência de Energia',
+          color: 'amber',
+          title: 'Cruzamento Intersistema (S₁ → T₁) e Transferência de Energia',
+          desc: 'Em moléculas com forte acoplamento spin–órbita (ou díades doador–aceitador), a população em S₁ pode migrar para o estado tripleto T₁ (ISC) ou transferir energia para um cromóforo vizinho (FRET/Dexter).',
+          sig: 'Substituição de bandas de S₁ por ESA tripleto persistente (T₁ → Tₙ) e manutenção parcial do GSB.',
+        },
+        {
+          id: 'ns-us',
+          range: 'ns – μs',
+          short: 'Fluorescência & Fosforescência',
+          color: 'rose',
+          title: 'Decaimento Radiativo (S₁ → S₀) e Vida Longa de Tripletos (T₁ → S₀)',
+          desc: 'A população termalizada em S₁ relaxa para o estado fundamental emitindo fluorescência (tipicamente 0,5–10 ns), cujo tempo de vida coincide com medidas de TCSPC. Já estados tripletos T₁ vivem de microssegundos a milissegundos, aparecendo como um platô constante em setups de femtossegundos.',
+          sig: 'Decaimento sincronizado de GSB, SE e ESA (em ns) ou platô residual não nulo no fim da janela.',
+        },
+      ];
+
+      const tlStyles = {
+        violet: { active: 'border-violet-400/60 bg-violet-500/15', dot: 'bg-violet-400', txt: 'text-violet-300' },
+        emerald: { active: 'border-emerald-400/60 bg-emerald-500/15', dot: 'bg-emerald-400', txt: 'text-emerald-300' },
+        cyan: { active: 'border-cyan-400/60 bg-cyan-500/15', dot: 'bg-cyan-400', txt: 'text-cyan-300' },
+        amber: { active: 'border-amber-400/60 bg-amber-500/15', dot: 'bg-amber-400', txt: 'text-amber-300' },
+        rose: { active: 'border-rose-400/60 bg-rose-500/15', dot: 'bg-rose-400', txt: 'text-rose-300' },
+      };
+
+      const tlGrid = document.getElementById('timeline-grid');
+      const tlCard = document.getElementById('timeline-card');
+      let activeTlId = 'esipt-ict';
+
+      function renderTimeline() {
+        tlGrid.innerHTML = timelineItems
+          .map((it) => {
+            const on = it.id === activeTlId;
+            const st = tlStyles[it.color];
+            return `
+              <button data-tl="${it.id}" class="text-left rounded-xl border p-3 transition-all ${
+                on ? `${st.active} shadow-lg` : 'border-slate-800 bg-[#060911]/85 hover:border-slate-700'
+              }">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="h-2.5 w-2.5 rounded-full ${st.dot} ${on ? '' : 'opacity-65'}"></span>
+                  <span class="font-mono text-xs font-bold ${on ? st.txt : 'text-slate-300'}">${it.range}</span>
+                </div>
+                <div class="text-[11.5px] font-semibold ${on ? 'text-white' : 'text-slate-400'} leading-snug">${it.short}</div>
+              </button>
+            `;
+          })
+          .join('');
+
+        tlGrid.querySelectorAll('button').forEach((b) => {
+          b.addEventListener('click', () => {
+            activeTlId = b.getAttribute('data-tl');
+            renderTimeline();
+          });
+        });
+
+        const cur = timelineItems.find((i) => i.id === activeTlId);
+        const st = tlStyles[cur.color];
+        tlCard.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+            <h3 class="font-display text-base sm:text-lg font-bold text-white">${cur.title}</h3>
+            <span class="rounded-lg border px-2.5 py-0.5 font-mono text-xs font-bold ${st.active} ${st.txt}">${cur.range}</span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-3.5">${cur.desc}</p>
+          <div class="rounded-lg bg-slate-900/90 border border-slate-800 px-3.5 py-2 text-xs">
+            <span class="font-mono uppercase text-[10px] font-bold ${st.txt} mr-2">Assinatura em &Delta;A(&lambda;, &tau;):</span>
+            <span class="text-slate-300">${cur.sig}</span>
+          </div>
+        `;
+      }
+
+      // Comparador Visual DADS vs. EADS (Modelo Sequencial A -> B -> S0, τ1 = 0,5 ps, τ2 = 100 ps)
+      const eadsCanvas = document.getElementById('eads-canvas');
+      const dadsCanvas = document.getElementById('dads-canvas');
+      const gaGrid = document.getElementById('ga-canvas-grid');
+      const gaEadsBox = document.getElementById('ga-eads-box');
+      const gaDadsBox = document.getElementById('ga-dads-box');
+
+      function epsA(wl) {
+        // Espécie inicial A: GSB em 405 nm + SE em 465 nm + ESA_A positiva em 525 nm
+        return -24 * gaussian(wl, 405, 18) - 18 * gaussian(wl, 465, 20) + 34 * gaussian(wl, 525, 22);
+      }
+      function epsB(wl) {
+        // Espécie produto B: GSB em 405 nm + forte ESA_B positiva em 630 nm
+        return -24 * gaussian(wl, 405, 18) + 38 * gaussian(wl, 630, 25);
+      }
+
+      function drawGlobalComparisonCanvas(canvas, mode) {
+        if (!canvas || canvas.offsetParent === null) return;
+        const { ctx, w, h } = prepCanvas(canvas);
+        ctx.clearRect(0, 0, w, h);
+
+        const pad = { top: 18, right: 16, bottom: 30, left: 42 };
+        const pw = w - pad.left - pad.right;
+        const ph = h - pad.top - pad.bottom;
+
+        const minWl = 360, maxWl = 720;
+        const minY = -44, maxY = 46;
+        const xOf = (wl) => pad.left + ((wl - minWl) / (maxWl - minWl)) * pw;
+        const yOf = (v) => pad.top + ((maxY - v) / (maxY - minY)) * ph;
+        const y0 = yOf(0);
+
+        // Grade
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.1)';
+        ctx.lineWidth = 1;
+        [-40, -20, 0, 20, 40].forEach((yv) => {
+          const y = yOf(yv);
+          ctx.beginPath();
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(w - pad.right, y);
+          ctx.stroke();
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '500 9px "JetBrains Mono", monospace';
+          ctx.textAlign = 'right';
+          ctx.fillText(yv > 0 ? `+${yv}` : `${yv}`, pad.left - 6, y + 3);
+        });
+
+        for (let wl = 400; wl <= 700; wl += 50) {
+          const x = xOf(wl);
+          ctx.beginPath();
+          ctx.moveTo(x, pad.top);
+          ctx.lineTo(x, h - pad.bottom);
+          ctx.stroke();
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '500 9px "JetBrains Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${wl}`, x, h - pad.bottom + 13);
+        }
+
+        // Linha zero
+        ctx.strokeStyle = 'rgba(226, 232, 240, 0.36)';
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y0);
+        ctx.lineTo(w - pad.right, y0);
+        ctx.stroke();
+
+        // Destaque visual da região de 630 nm (banda produto B)
+        ctx.fillStyle = mode === 'dads' ? 'rgba(251, 113, 133, 0.09)' : 'rgba(251, 191, 36, 0.08)';
+        ctx.fillRect(xOf(590), pad.top, xOf(670) - xOf(590), ph);
+
+        const alpha = 100 / (100 - 0.5); // τ2 / (τ2 - τ1)
+        const N = 180;
+
+        function plotFn(fn, color, dashed) {
+          ctx.save();
+          if (dashed) ctx.setLineDash([5, 3]);
+          ctx.beginPath();
+          for (let i = 0; i <= N; i++) {
+            const wl = minWl + (i / N) * (maxWl - minWl);
+            const x = xOf(wl), y = yOf(fn(wl));
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2.2;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        if (mode === 'eads') {
+          plotFn((wl) => epsA(wl), '#22d3ee', false);
+          plotFn((wl) => epsB(wl), '#fbbf24', false);
+
+          // Anotações diretas
+          ctx.font = '600 9.5px "JetBrains Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#67e8f9';
+          ctx.fillText('ESA de A', xOf(525), yOf(38));
+          ctx.fillStyle = '#fde68a';
+          ctx.fillText('ESA de B (+)', xOf(630), yOf(41));
+        } else {
+          // DADS1 = epsA - alpha * epsB; DADS2 = alpha * epsB
+          plotFn((wl) => epsA(wl) - alpha * epsB(wl), '#a78bfa', false);
+          plotFn((wl) => alpha * epsB(wl), '#fbbf24', true);
+
+          ctx.font = '600 9.5px "JetBrains Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#c4b5fd';
+          ctx.fillText('Decai A (+)', xOf(525), yOf(38));
+          ctx.fillStyle = '#fda4af';
+          ctx.fillText('Cresc. de B (−)!', xOf(630), yOf(-40));
+        }
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '600 9.5px "Inter", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Comprimento de Onda λ (nm)', pad.left + pw * 0.5, h - 4);
+      }
+
+      function redrawGlobalPlots() {
+        drawGlobalComparisonCanvas(eadsCanvas, 'eads');
+        drawGlobalComparisonCanvas(dadsCanvas, 'dads');
+      }
+
+      document.querySelectorAll('.ga-mode-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const m = btn.getAttribute('data-ga-mode');
+          document.querySelectorAll('.ga-mode-btn').forEach((b) => {
+            b.className =
+              b === btn
+                ? 'ga-mode-btn rounded-lg px-3 py-2 font-mono text-xs font-semibold bg-cyan-400 text-slate-950 transition-all'
+                : 'ga-mode-btn rounded-lg px-3 py-2 font-mono text-xs font-semibold text-slate-300 hover:text-white transition-all';
+          });
+          if (m === 'both') {
+            gaGrid.className = 'grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5';
+            gaEadsBox.classList.remove('hidden');
+            gaDadsBox.classList.remove('hidden');
+          } else if (m === 'dads') {
+            gaGrid.className = 'grid grid-cols-1 gap-5 mb-5';
+            gaEadsBox.classList.add('hidden');
+            gaDadsBox.classList.remove('hidden');
+          } else {
+            gaGrid.className = 'grid grid-cols-1 gap-5 mb-5';
+            gaEadsBox.classList.remove('hidden');
+            gaDadsBox.classList.add('hidden');
+          }
+          requestAnimationFrame(redrawGlobalPlots);
+        });
+      });
+
+      /* -------------------------------------------------------------------
+       * 7. RESIZEOBSERVER PARA HiDPI EM TODOS OS CANVAS & LOOP 60 FPS
+       * ------------------------------------------------------------------- */
+      if (typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(() => {
+          drawAnatomyCanvas();
+          drawMap2D();
+          drawSpectralSlice();
+          drawKineticTrace();
+          redrawGlobalPlots();
+        });
+        [heroCanvas, benchCanvas, anatCanvas, mapCanvas, specCanvas, kinCanvas, eadsCanvas, dadsCanvas].forEach((c) => {
+          if (c) ro.observe(c);
+        });
+      }
+
+      function animationLoop() {
+        drawHeroCanvas();
+        drawOpticalBench();
+
+        if (simState.playing) {
+          let u = tauToNorm(simState.tau) + 0.0042;
+          if (u > 1.0) u = 0.0;
+          simState.tau = normToTau(u);
+          updateSimulatorViews();
+        }
+
+        requestAnimationFrame(animationLoop);
+      }
+
+      // Inicialização com tratamento de erro
+      try {
+        benchSlider.value = benchTauToSlider(benchState.tau);
+        updateBenchReadouts();
+        syncAnatomyUI();
+        drawAnatomyCanvas();
+        selectScenario('ict');
+        renderTimeline();
+        redrawGlobalPlots();
+        requestAnimationFrame(animationLoop);
+      } catch (err) {
+        console.error('Falha na inicialização dos módulos interativos:', err);
+      }
+    })();
+  </script>
+</body>
+</html>
