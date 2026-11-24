@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GraphRev — Scientific Graph Reverse Engineering</title>
+  <meta name="description" content="100% client-side scientific graph digitizer and reverse-engineering workbench. Calibrate linear, log10, or rotated axes, trace curves automatically, smooth noise, and export clean data.">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Header Bar -->
+    <header class="topbar">
+      <div class="topbar-group">
+        <div class="brand" title="GraphRev — Client-Side Scientific Graph Digitizer">
+          <img src="./favicon.svg" alt="" class="brand-icon" width="24" height="24">
+          <span class="brand-name">GraphRev</span>
+          <span class="brand-tag">Local Workbench</span>
+        </div>
+
+        <div class="divider-v"></div>
+
+        <button id="btnOpenImage" class="btn btn-primary btn-sm" title="Load graph image (PNG, JPG, WebP, SVG)">
+          Open Image
+        </button>
+        <input id="fileImageInput" type="file" accept="image/*" hidden>
+
+        <button id="btnDemoSpec" class="btn btn-ghost btn-sm" title="Load Argon Spectroscopy Linear Demo">
+          Demo: Spectrum
+        </button>
+        <button id="btnDemoBode" class="btn btn-ghost btn-sm" title="Load Semi-Log Bode Filter Demo">
+          Demo: Log
+        </button>
+      </div>
+
+      <div class="topbar-group">
+        <button id="btnSaveProject" class="btn btn-ghost btn-sm" title="Download full project (.json)">
+          Save
+        </button>
+        <button id="btnLoadProject" class="btn btn-ghost btn-sm" title="Load saved project (.json)">
+          Load
+        </button>
+        <input id="fileProjectInput" type="file" accept=".json,application/json" hidden>
+
+        <div class="divider-v"></div>
+
+        <button id="btnUndo" class="btn btn-icon btn-sm" title="Undo (Ctrl+Z)" disabled>&#8630;</button>
+        <button id="btnRedo" class="btn btn-icon btn-sm" title="Redo (Ctrl+Y)" disabled>&#8631;</button>
+
+        <div class="divider-v"></div>
+
+        <div class="zoom-controls">
+          <button id="btnZoomOut" class="btn btn-icon btn-sm" title="Zoom Out">-</button>
+          <span id="zoomReadout" class="mono-readout zoom-readout">100%</span>
+          <button id="btnZoomIn" class="btn btn-icon btn-sm" title="Zoom In">+</button>
+          <button id="btnFitView" class="btn btn-ghost btn-sm" title="Fit image to stage (F)">Fit</button>
+        </div>
+
+        <div class="divider-v"></div>
+
+        <span id="calibStatusPill" class="status-pill status-warn">Uncalibrated</span>
+        <button id="btnThemeToggle" class="btn btn-ghost btn-sm" title="Switch Dark / Light theme">Light</button>
+        <button id="btnHelp" class="btn btn-icon btn-sm" title="Keyboard shortcuts (?)">?</button>
+      </div>
+    </header>
+
+    <!-- Main 3-Column Workbench -->
+    <main class="workbench">
+      <!-- Left Tool Rail -->
+      <aside class="tool-rail" aria-label="Digitizing Tools">
+        <button class="tool-btn active" data-tool="calibrate" id="toolCalibrate" title="Calibrate Axes (C)">
+          <span class="tool-glyph">&#8982;</span>
+          <span class="tool-label">Calib</span>
+        </button>
+        <button class="tool-btn" data-tool="pick" id="toolPick" title="Pick Data Points (P)">
+          <span class="tool-glyph">+</span>
+          <span class="tool-label">Pick</span>
+        </button>
+        <button class="tool-btn" data-tool="eyedropper" id="toolEyedropper" title="Eyedropper Curve Color (E)">
+          <span class="tool-glyph">&#9673;</span>
+          <span class="tool-label">Color</span>
+        </button>
+        <button class="tool-btn" data-tool="roi" id="toolRoi" title="Draw Trace ROI Box (R)">
+          <span class="tool-glyph">&#9635;</span>
+          <span class="tool-label">ROI</span>
+        </button>
+        <button class="tool-btn" data-tool="pan" id="toolPan" title="Pan Canvas (H or Hold Space)">
+          <span class="tool-glyph">&#10021;</span>
+          <span class="tool-label">Pan</span>
+        </button>
+
+        <div class="rail-spacer"></div>
+
+        <button class="tool-btn toggle-btn active" id="btnToggleGrid" title="Toggle Calibrated Grid Overlay (G)">
+          <span class="tool-glyph">#</span>
+          <span class="tool-label">Grid</span>
+        </button>
+        <button class="tool-btn toggle-btn active" id="btnToggleLoupe" title="Toggle Precision Magnifier Loupe (L)">
+          <span class="tool-glyph">&#128269;</span>
+          <span class="tool-label">Loupe</span>
+        </button>
+        <button class="tool-btn toggle-btn active" id="btnToggleConnect" title="Toggle Connecting Lines">
+          <span class="tool-glyph">&#8767;</span>
+          <span class="tool-label">Line</span>
+        </button>
+      </aside>
+
+      <!-- Center Canvas + Bottom Drawer -->
+      <section class="center-column">
+        <div id="canvasStage" class="canvas-stage">
+          <canvas id="mainCanvas"></canvas>
+
+          <!-- Empty Landing State -->
+          <div id="emptyState" class="empty-state">
+            <div class="empty-card">
+              <div class="empty-badge">100% Client-Side &middot; Zero Data Leaves Your Browser</div>
+              <h1>Reverse-Engineer Any Graph Image</h1>
+              <p>
+                Calibrate linear, logarithmic, or tilted/rotated scans, trace curves automatically by color,
+                apply Savitzky-Golay smoothing, and export publication-ready data.
+              </p>
+              <div class="empty-actions">
+                <button id="btnEmptyUpload" class="btn btn-primary">Choose Image File</button>
+                <button id="btnEmptyDemoSpec" class="btn btn-secondary">Try Spectroscopy Demo (Linear)</button>
+                <button id="btnEmptyDemoBode" class="btn btn-secondary">Try Bode Filter Demo (Log-Log/Semi-Log)</button>
+              </div>
+              <div class="empty-hint">
+                Or drag &amp; drop a PNG/JPG/SVG onto this stage, or press <kbd>Ctrl</kbd>+<kbd>V</kbd> to paste a screenshot directly.
+              </div>
+            </div>
+          </div>
+
+          <!-- Drag & Drop Active Overlay -->
+          <div id="dropOverlay" class="drop-overlay hidden">
+            <div class="drop-overlay-box">Drop image to load into GraphRev</div>
+          </div>
+
+          <!-- Precision Magnifier Loupe -->
+          <div id="loupeCard" class="loupe-card hidden" aria-hidden="true">
+            <canvas id="loupeCanvas" width="168" height="168"></canvas>
+            <span id="loupeZoomBadge" class="loupe-badge">6&times;</span>
+            <div class="loupe-footer">
+              <span id="loupeColorChip" class="color-chip"></span>
+              <span id="loupePixelText" class="mono-readout">0, 0</span>
+            </div>
+          </div>
+
+          <!-- Inline Calibration Popover -->
+          <div id="calibPopover" class="calib-popover hidden" role="dialog" aria-label="Set calibration value">
+            <div class="popover-header">
+              <span id="calibPopoverTitle" class="popover-title">Set X1 Real Value</span>
+              <span id="calibPopoverHint" class="popover-hint">Press Enter to advance</span>
+            </div>
+            <div class="popover-row">
+              <input id="calibPopoverInput" type="text" class="input mono-readout" placeholder="e.g. 620 or 1e-4" autocomplete="off">
+              <button id="calibPopoverConfirm" class="btn btn-primary btn-sm">Set</button>
+              <button id="calibPopoverCancel" class="btn btn-ghost btn-sm">Esc</button>
+            </div>
+            <div id="calibPopoverError" class="popover-error hidden"></div>
+          </div>
+
+          <!-- Bottom-Left Live Telemetry HUD -->
+          <div id="hudBar" class="hud-bar">
+            <span id="hudToolHint" class="hud-item">Select Calib (C) and click X1 on the X-axis</span>
+            <span class="hud-sep">|</span>
+            <span id="hudPixel" class="hud-item mono-readout">px: &mdash;, &mdash;</span>
+            <span class="hud-sep">|</span>
+            <span id="hudReal" class="hud-item mono-readout hud-accent">X: &mdash; &nbsp; Y: &mdash;</span>
+            <button id="btnAutoCalibDemo" class="btn btn-accent btn-xs hidden" title="Snap exact calibration pins for the loaded demo image">
+              Auto-Calibrate Demo
+            </button>
+          </div>
+        </div>
+
+        <!-- Collapsible Bottom Drawer: Reconstructed Plot & Data Table -->
+        <section id="bottomDrawer" class="bottom-drawer">
+          <div class="drawer-header">
+            <div class="drawer-tabs">
+              <button id="drawerTabChart" class="drawer-tab active">Live Reconstructed Plot</button>
+              <button id="drawerTabTable" class="drawer-tab">Data Table (<span id="tableCountBadge">0</span>)</button>
+            </div>
+            <div class="drawer-meta">
+              <span id="drawerSeriesLabel" class="mono-readout">Active: Series 1</span>
+              <button id="btnToggleDrawer" class="btn btn-ghost btn-xs" title="Collapse or expand drawer">Hide</button>
+            </div>
+          </div>
+          <div class="drawer-body">
+            <div id="drawerChartPane" class="drawer-pane">
+              <canvas id="previewChartCanvas"></canvas>
+            </div>
+            <div id="drawerTablePane" class="drawer-pane hidden">
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Pixel (px, py)</th>
+                      <th>X</th>
+                      <th>Y (Raw)</th>
+                      <th id="thYSmooth" class="hidden">Y (Smoothed)</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dataTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- Right Tabbed Inspector -->
+      <aside class="inspector" aria-label="Inspector">
+        <div class="inspector-tabs">
+          <button class="insp-tab active" data-tab="calibrate" id="tabBtnCalibrate">Calibrate</button>
+          <button class="insp-tab" data-tab="trace" id="tabBtnTrace">Series &amp; Trace</button>
+          <button class="insp-tab" data-tab="process" id="tabBtnProcess">Process</button>
+          <button class="insp-tab" data-tab="export" id="tabBtnExport">Export</button>
+        </div>
+
+        <div class="inspector-body">
+          <!-- TAB 1: CALIBRATE -->
+          <div class="insp-pane active" id="paneCalibrate">
+            <div class="panel-section">
+              <div class="section-header">
+                <h3>Axis Calibration (4-Point)</h3>
+                <button id="btnClearPins" class="btn btn-ghost btn-xs">Clear Pins</button>
+              </div>
+              <p class="help-text">
+                Click each reference target on the image, or drag existing pins directly to refine alignment.
+              </p>
+
+              <div class="pin-list" id="pinList">
+                <!-- Populated & synced by app.js -->
+                <div class="pin-row" data-pin="x1">
+                  <button class="pin-select-btn pin-x" data-select-pin="x1">X1</button>
+                  <span class="pin-coords mono-readout" id="pinCoords-x1">Unset</span>
+                  <input type="text" class="input input-sm mono-readout pin-val-input" data-pin-input="x1" placeholder="X1 val">
+                </div>
+                <div class="pin-row" data-pin="x2">
+                  <button class="pin-select-btn pin-x" data-select-pin="x2">X2</button>
+                  <span class="pin-coords mono-readout" id="pinCoords-x2">Unset</span>
+                  <input type="text" class="input input-sm mono-readout pin-val-input" data-pin-input="x2" placeholder="X2 val">
+                </div>
+                <div class="pin-row" data-pin="y1">
+                  <button class="pin-select-btn pin-y" data-select-pin="y1">Y1</button>
+                  <span class="pin-coords mono-readout" id="pinCoords-y1">Unset</span>
+                  <input type="text" class="input input-sm mono-readout pin-val-input" data-pin-input="y1" placeholder="Y1 val">
+                </div>
+                <div class="pin-row" data-pin="y2">
+                  <button class="pin-select-btn pin-y" data-select-pin="y2">Y2</button>
+                  <span class="pin-coords mono-readout" id="pinCoords-y2">Unset</span>
+                  <input type="text" class="input input-sm mono-readout pin-val-input" data-pin-input="y2" placeholder="Y2 val">
+                </div>
+              </div>
+
+              <button id="btnAutoCalibDemoPanel" class="btn btn-secondary btn-block hidden" style="margin-top: 10px;">
+                Auto-Calibrate Loaded Demo
+              </button>
+            </div>
+
+            <div class="panel-section">
+              <h3>Geometry &amp; Axis Scales</h3>
+              <div class="form-row">
+                <label for="calibModeSelect">Axis Alignment</label>
+                <select id="calibModeSelect" class="input">
+                  <option value="orthogonal">Orthogonal Lock (Screenshots)</option>
+                  <option value="skewed">Skewed / Rotated (Scanned Photos)</option>
+                </select>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-row">
+                  <label for="xScaleSelect">X-Axis Scale</label>
+                  <select id="xScaleSelect" class="input">
+                    <option value="linear">Linear</option>
+                    <option value="log10">Log10</option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <label for="yScaleSelect">Y-Axis Scale</label>
+                  <select id="yScaleSelect" class="input">
+                    <option value="linear">Linear</option>
+                    <option value="log10">Log10</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <h3>Calibration Diagnostics</h3>
+              <div id="calibDiagnostics" class="diag-box">
+                Place all 4 pins to compute basis vectors and virtual origin.
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: SERIES & AUTO-TRACE -->
+          <div class="insp-pane" id="paneTrace">
+            <div class="panel-section">
+              <div class="section-header">
+                <h3>Data Series</h3>
+                <button id="btnAddSeries" class="btn btn-primary btn-xs">+ Add Series</button>
+              </div>
+              <div id="seriesList" class="series-list"></div>
+            </div>
+
+            <div class="panel-section">
+              <h3>Manual Picking Assist</h3>
+              <label class="checkbox-row">
+                <input type="checkbox" id="chkSnapToColor">
+                <span>Snap manual clicks to nearest curve color</span>
+              </label>
+              <div class="form-row compact-row">
+                <label for="snapRadiusSlider">Snap Radius: <strong id="snapRadiusVal" class="mono-readout">10 px</strong></label>
+                <input type="range" id="snapRadiusSlider" min="3" max="24" step="1" value="10">
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <div class="section-header">
+                <h3>Color Auto-Tracer</h3>
+                <button id="btnPickColorTool" class="btn btn-ghost btn-xs" title="Sample color from graph (E)">Eyedropper (E)</button>
+              </div>
+
+              <div class="color-picker-row">
+                <input type="color" id="tracerColorInput" value="#1d4ed8" title="Target curve color">
+                <span id="tracerColorHex" class="mono-readout">#1d4ed8</span>
+                <span class="help-inline">Click curve with Eyedropper</span>
+              </div>
+
+              <div class="form-row">
+                <label for="tracerTolerance">Color Tolerance: <strong id="tracerToleranceVal" class="mono-readout">42</strong></label>
+                <input type="range" id="tracerTolerance" min="5" max="150" step="1" value="42">
+              </div>
+
+              <div class="form-row">
+                <label for="tracerStep">X Sample Step: <strong id="tracerStepVal" class="mono-readout">6 px</strong></label>
+                <input type="range" id="tracerStep" min="1" max="30" step="1" value="6">
+              </div>
+
+              <div class="form-row">
+                <label for="tracerMode">Tracing Algorithm</label>
+                <select id="tracerMode" class="input">
+                  <option value="tracked">Tracked Continuity (Rejects Legend)</option>
+                  <option value="centroid">Column Weighted Centroid</option>
+                  <option value="top">Top Edge</option>
+                  <option value="bottom">Bottom Edge</option>
+                </select>
+              </div>
+
+              <div class="roi-row">
+                <span id="roiStatusText" class="mono-readout">ROI: Full Image</span>
+                <div class="roi-btns">
+                  <button id="btnDrawRoi" class="btn btn-ghost btn-xs">Draw ROI (R)</button>
+                  <button id="btnClearRoi" class="btn btn-ghost btn-xs">Clear</button>
+                </div>
+              </div>
+
+              <div class="trace-actions">
+                <button id="btnPreviewTrace" class="btn btn-secondary btn-sm">Preview Trace</button>
+                <button id="btnClearTracePreview" class="btn btn-ghost btn-sm">Clear Preview</button>
+              </div>
+              <div class="trace-actions" style="margin-top: 6px;">
+                <button id="btnApplyReplace" class="btn btn-primary btn-sm">Apply (Replace)</button>
+                <button id="btnApplyAppend" class="btn btn-ghost btn-sm">Apply (Append)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: PROCESS & VIEW -->
+          <div class="insp-pane" id="paneProcess">
+            <div class="panel-section">
+              <h3>Curve Post-Processing</h3>
+              <label class="checkbox-row">
+                <input type="checkbox" id="chkSortByX" checked>
+                <span>Sort points by X ascending (uncheck for loops)</span>
+              </label>
+
+              <div class="form-row" style="margin-top: 10px;">
+                <label for="smoothMethod">Noise Smoothing</label>
+                <select id="smoothMethod" class="input">
+                  <option value="none">None (Raw Data)</option>
+                  <option value="moving_avg">Centered Moving Average</option>
+                  <option value="savitzky_golay">Savitzky-Golay (Degree 2)</option>
+                </select>
+              </div>
+
+              <div class="form-row" id="smoothWindowRow">
+                <label for="smoothWindow">Window Size (Points)</label>
+                <select id="smoothWindow" class="input">
+                  <option value="5">5 points</option>
+                  <option value="7" selected>7 points</option>
+                  <option value="9">9 points</option>
+                  <option value="11">11 points</option>
+                  <option value="15">15 points</option>
+                  <option value="21">21 points</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <h3>Active Series Summary Stats</h3>
+              <div id="statsGrid" class="stats-grid">
+                <div class="stat-cell"><span>Points</span><strong id="statCount">0</strong></div>
+                <div class="stat-cell"><span>Area (Trapz)</span><strong id="statArea">&mdash;</strong></div>
+                <div class="stat-cell"><span>X Range</span><strong id="statXRange">&mdash;</strong></div>
+                <div class="stat-cell"><span>Y Range</span><strong id="statYRange">&mdash;</strong></div>
+                <div class="stat-cell"><span>Peak X</span><strong id="statPeakX">&mdash;</strong></div>
+                <div class="stat-cell"><span>Peak Y</span><strong id="statPeakY">&mdash;</strong></div>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <div class="section-header">
+                <h3>Image &amp; Loupe View</h3>
+                <button id="btnResetView" class="btn btn-ghost btn-xs">Reset View</button>
+              </div>
+
+              <div class="form-row">
+                <label for="viewBrightness">Brightness: <strong id="viewBrightnessVal" class="mono-readout">100%</strong></label>
+                <input type="range" id="viewBrightness" min="50" max="180" value="100">
+              </div>
+              <div class="form-row">
+                <label for="viewContrast">Contrast: <strong id="viewContrastVal" class="mono-readout">100%</strong></label>
+                <input type="range" id="viewContrast" min="50" max="180" value="100">
+              </div>
+              <div class="form-row">
+                <label for="viewOpacity">Image Opacity: <strong id="viewOpacityVal" class="mono-readout">100%</strong></label>
+                <input type="range" id="viewOpacity" min="15" max="100" value="100">
+              </div>
+              <div class="form-row">
+                <label for="loupeZoomSlider">Loupe Magnification: <strong id="loupeZoomVal" class="mono-readout">6&times;</strong></label>
+                <input type="range" id="loupeZoomSlider" min="3" max="12" step="1" value="6">
+              </div>
+              <label class="checkbox-row">
+                <input type="checkbox" id="chkInvertImage">
+                <span>Invert image colors (overlays stay crisp)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- TAB 4: EXPORT -->
+          <div class="insp-pane" id="paneExport">
+            <div class="panel-section">
+              <h3>Export Options</h3>
+              <div class="form-grid-2">
+                <div class="form-row">
+                  <label for="exportScope">Series Scope</label>
+                  <select id="exportScope" class="input">
+                    <option value="active">Active Series</option>
+                    <option value="all">All Visible Series</option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <label for="exportFormat">Format</label>
+                  <select id="exportFormat" class="input">
+                    <option value="tsv">TSV (.txt)</option>
+                    <option value="csv">CSV (.csv)</option>
+                    <option value="json">JSON (.json)</option>
+                    <option value="python">Python / NumPy (.py)</option>
+                    <option value="matlab">MATLAB (.m)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <label for="exportPrecision">Decimal Precision: <strong id="exportPrecisionVal" class="mono-readout">6</strong></label>
+                <input type="range" id="exportPrecision" min="2" max="10" step="1" value="6">
+              </div>
+
+              <label class="checkbox-row">
+                <input type="checkbox" id="chkExportHeader" checked>
+                <span>Include column headers</span>
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" id="chkExportSmoothed" checked>
+                <span>Include Y_smoothed column when smoothing is active</span>
+              </label>
+            </div>
+
+            <div class="panel-section export-preview-section">
+              <div class="section-header">
+                <h3>Output Preview</h3>
+                <span id="exportMetaCount" class="mono-readout">0 rows</span>
+              </div>
+              <textarea id="exportPreview" class="export-textarea mono-readout" readonly spellcheck="false"></textarea>
+              <div class="export-actions">
+                <button id="btnCopyExport" class="btn btn-secondary">Copy to Clipboard</button>
+                <button id="btnDownloadExport" class="btn btn-primary">Download File</button>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <button id="btnResetSession" class="btn btn-danger-ghost btn-block btn-sm">
+                Reset Entire Workspace
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div id="helpModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="helpModalTitle">Keyboard Shortcuts &amp; Workflow</h2>
+        <button id="btnCloseHelp" class="btn btn-icon btn-sm">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="shortcut-grid">
+          <div><kbd>C</kbd> Calibrate tool</div>
+          <div><kbd>P</kbd> Pick points tool</div>
+          <div><kbd>E</kbd> Eyedropper tool</div>
+          <div><kbd>R</kbd> ROI rectangle tool</div>
+          <div><kbd>H</kbd> / Hold <kbd>Space</kbd> Pan canvas</div>
+          <div><kbd>F</kbd> Fit image to view</div>
+          <div><kbd>G</kbd> Toggle calibrated grid</div>
+          <div><kbd>L</kbd> Toggle magnifier loupe</div>
+          <div><kbd>Scroll</kbd> Zoom toward cursor</div>
+          <div><kbd>Right-Click</kbd> Delete nearest point</div>
+          <div><kbd>Arrow Keys</kbd> Nudge selected pin/point (1 px)</div>
+          <div><kbd>Shift</kbd>+<kbd>Arrow</kbd> Fine nudge (0.25 px)</div>
+          <div><kbd>Del</kbd> / <kbd>Backspace</kbd> Remove selected</div>
+          <div><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd> Undo / Redo</div>
+          <div><kbd>Ctrl</kbd>+<kbd>V</kbd> Paste screenshot image</div>
+          <div><kbd>?</kbd> Show / close this reference</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <script defer src="./js/math.js"></script>
+  <script defer src="./js/tracer.js"></script>
+  <script defer src="./js/state.js"></script>
+  <script defer src="./js/demo.js"></script>
+  <script defer src="./js/export.js"></script>
+  <script defer src="./js/canvas.js"></script>
+  <script defer src="./js/chart.js"></script>
+  <script defer src="./js/app.js"></script>
+</body>
+</html>
