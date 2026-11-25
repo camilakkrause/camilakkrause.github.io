@@ -8,6 +8,8 @@
 
 🎨 [Guess the RGB](https://camilakkrause.github.io/guessRGB) — look at a color and try to guess its R, G, and B values.
 
+🌈 [Guess the Wavelength](https://camilakkrause.github.io/guess_wavelength) — estimate the wavelength of laser light in nanometers and track your perceptual calibration across the visible spectrum.
+
 🔢 [Vibe Counting](https://camilakkrause.github.io/vibecount) — guess how many circles are on screen without counting them one by one.
 
 ⚖️ [Find the Barycenter](https://camilakkrause.github.io/barycenter) — find the center of mass of a set of bodies.
@@ -23,5 +25,3 @@
 ## Explanations
 
 ⚡[Pump-Probe Spectroscopy](https://camilakkrause.github.io/transient_absorption) — interactive explanation for the pump-probe transient absorption spectroscopy (pt-br)
-
-
