@@ -1,0 +1,2260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guess the Wavelength</title>
+  <style>
+    :root {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --surface-subtle: #f3f4f6;
+      --border: #e5e7eb;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --good: #15803d;
+      --good-bg: #dcfce7;
+      --ok: #b45309;
+      --ok-bg: #fef3c7;
+      --miss: #b91c1c;
+      --miss-bg: #fee2e2;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+      --radius: 12px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body.dark-room {
+      --bg: #111215;
+      --surface: #181a1f;
+      --surface-subtle: #22252c;
+      --border: #2c303a;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent: #3b82f6;
+      --accent-hover: #60a5fa;
+      --good: #4ade80;
+      --good-bg: rgba(34, 197, 94, 0.14);
+      --ok: #fbbf24;
+      --ok-bg: rgba(245, 158, 11, 0.14);
+      --miss: #f87171;
+      --miss-bg: rgba(239, 68, 68, 0.14);
+      --shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 28px 16px 48px;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .title-group h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-group p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .segmented {
+      display: inline-flex;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2px;
+    }
+
+    .segmented button {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .segmented button.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+
+    .icon-btn {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .icon-btn:hover {
+      color: var(--text);
+      border-color: var(--text-muted);
+    }
+
+    /* Main Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+
+    /* Color Swatch Stage */
+    .swatch-stage {
+      position: relative;
+      height: 215px;
+      display: flex;
+      width: 100%;
+      background: #000;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .swatch-pane {
+      position: relative;
+      height: 100%;
+      transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease;
+    }
+
+    .swatch-target {
+      width: 100%;
+    }
+
+    .swatch-guess {
+      width: 0%;
+      overflow: hidden;
+    }
+
+    .swatch-stage.revealed .swatch-target {
+      width: 50%;
+    }
+
+    .swatch-stage.revealed .swatch-guess {
+      width: 50%;
+      border-left: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .swatch-pill {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(0, 0, 0, 0.58);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-family: var(--mono);
+      letter-spacing: 0.01em;
+      pointer-events: none;
+    }
+
+    .round-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(0, 0, 0, 0.52);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .card-body {
+      padding: 20px;
+    }
+
+    /* Controls (Guessing State) */
+    .guess-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .nm-input-wrap {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .nm-input {
+      font-family: var(--mono);
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--text);
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 96px;
+      padding: 2px 8px;
+      text-align: right;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .nm-input:focus {
+      border-color: var(--accent);
+    }
+
+    .nm-input::-webkit-inner-spin-button,
+    .nm-input::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .nm-input {
+      -moz-appearance: textfield;
+    }
+
+    .nm-unit {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .live-physics {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* Slider */
+    .slider-wrap {
+      margin-bottom: 18px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 3px solid var(--surface);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+      cursor: grab;
+      transition: transform 0.1s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:active {
+      cursor: grabbing;
+      transform: scale(1.08);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 3px solid var(--surface);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+      cursor: grab;
+    }
+
+    .slider-ticks {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      user-select: none;
+    }
+
+    /* Reveal Section */
+    .reveal-box {
+      display: none;
+    }
+
+    .reveal-box.visible {
+      display: block;
+    }
+
+    .guess-box.hidden {
+      display: none;
+    }
+
+    .result-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .result-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .error-badge {
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+
+    .error-badge.good { background: var(--good-bg); color: var(--good); }
+    .error-badge.ok { background: var(--ok-bg); color: var(--ok); }
+    .error-badge.miss { background: var(--miss-bg); color: var(--miss); }
+
+    .verdict-text {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .points-badge {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* Spectrum Reveal Bar */
+    .spectrum-track-wrap {
+      position: relative;
+      padding: 22px 0 22px;
+      margin-bottom: 12px;
+    }
+
+    .spectrum-bar {
+      height: 16px;
+      border-radius: 999px;
+      width: 100%;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+    }
+
+    .spectrum-marker {
+      position: absolute;
+      top: 14px;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .marker-dot {
+      width: 14px;
+      height: 32px;
+      border-radius: 4px;
+      border: 2.5px solid #fff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+    }
+
+    .marker-dot.guess {
+      background: transparent;
+      border: 2.5px solid var(--text);
+      height: 26px;
+      margin-top: 3px;
+      box-shadow: 0 0 0 2px var(--surface);
+    }
+
+    .marker-label {
+      position: absolute;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      font-weight: 700;
+      white-space: nowrap;
+      color: var(--text);
+    }
+
+    .marker-label.top {
+      top: -18px;
+    }
+
+    .marker-label.bottom {
+      bottom: -18px;
+      color: var(--text-muted);
+    }
+
+    .physics-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      background: var(--surface-subtle);
+      padding: 9px 12px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+
+    .famous-line {
+      font-size: 0.82rem;
+      color: var(--text);
+      background: var(--surface-subtle);
+      border-left: 3px solid var(--accent);
+      padding: 7px 11px;
+      border-radius: 0 6px 6px 0;
+      margin-bottom: 14px;
+      display: none;
+    }
+
+    .famous-line.visible {
+      display: block;
+    }
+
+    /* Primary Button */
+    .btn-primary {
+      width: 100%;
+      padding: 11px 16px;
+      border: none;
+      border-radius: 9px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.06s ease;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-primary:active {
+      transform: translateY(1px);
+    }
+
+    /* 10-Round Challenge Summary */
+    .summary-box {
+      display: none;
+      text-align: center;
+      padding: 8px 0 4px;
+    }
+
+    .summary-box.visible {
+      display: block;
+    }
+
+    .summary-score {
+      font-family: var(--mono);
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--accent);
+      margin: 4px 0;
+    }
+
+    .summary-sub {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .summary-stat {
+      background: var(--surface-subtle);
+      border-radius: 8px;
+      padding: 10px 8px;
+    }
+
+    .summary-stat .val {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .summary-stat .lbl {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Stats & Calibration Card */
+    .stats-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px 0;
+    }
+
+    .stats-header h2 {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .text-btn {
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      font-size: 0.76rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .text-btn:hover {
+      color: var(--text);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      padding: 14px 20px;
+    }
+
+    .stat-tile {
+      background: var(--surface-subtle);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .stat-tile .val {
+      font-family: var(--mono);
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .stat-tile .lbl {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      padding: 0 20px 18px;
+    }
+
+    .chart-caption {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    canvas#calibrationChart {
+      width: 100%;
+      height: 170px;
+      display: block;
+      border-radius: 8px;
+      background: var(--surface-subtle);
+    }
+
+    .chart-tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: var(--text);
+      color: var(--surface);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      opacity: 0;
+      transform: translate(-50%, -120%);
+      transition: opacity 0.1s ease;
+      z-index: 5;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+      line-height: 1.7;
+    }
+
+    kbd {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+
+    /* Color Model Explanation Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      max-width: 630px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      z-index: 2;
+    }
+
+    .modal-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .modal-header h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .gamut-pill {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--accent);
+    }
+
+    .close-btn {
+      border: 1px solid var(--border);
+      background: var(--surface-subtle);
+      color: var(--text);
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .close-btn:hover {
+      border-color: var(--text-muted);
+    }
+
+    .modal-body {
+      padding: 18px 20px 22px;
+      font-size: 0.88rem;
+      line-height: 1.55;
+    }
+
+    .modal-intro {
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .cie-demo {
+      display: grid;
+      grid-template-columns: 230px 1fr;
+      gap: 16px;
+      align-items: center;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 18px;
+    }
+
+    canvas#cieCanvas {
+      width: 230px;
+      height: 230px;
+      display: block;
+      border-radius: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .cie-inspector {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .inspector-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .inspector-swatch {
+      width: 46px;
+      height: 46px;
+      border-radius: 8px;
+      border: 1px solid rgba(128, 128, 128, 0.3);
+      flex-shrink: 0;
+    }
+
+    .inspector-wl {
+      font-family: var(--mono);
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .inspector-sub {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+    }
+
+    .inspector-readout {
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 3px 10px;
+    }
+
+    .inspector-readout strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .cie-legend {
+      font-size: 0.71rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px 11px;
+      margin-top: 2px;
+    }
+
+    .legend-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+
+    .pipeline-steps {
+      list-style: none;
+      counter-reset: step;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .pipeline-steps li {
+      counter-increment: step;
+      position: relative;
+      padding-left: 30px;
+    }
+
+    .pipeline-steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 1px;
+      width: 21px;
+      height: 21px;
+      border-radius: 50%;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pipeline-steps strong {
+      color: var(--text);
+    }
+
+    .pipeline-steps p {
+      color: var(--text-muted);
+      font-size: 0.84rem;
+      margin-top: 2px;
+    }
+
+    @media (max-width: 580px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .swatch-stage {
+        height: 175px;
+      }
+      .nm-input {
+        font-size: 1.6rem;
+        width: 84px;
+      }
+      .cie-demo {
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+      .cie-inspector {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="title-group">
+        <h1>🌈 Guess the Wavelength</h1>
+        <p>Estimate the wavelength of laser light (380–700 nm)</p>
+      </div>
+      <div class="header-controls">
+        <div class="segmented" role="tablist" aria-label="Game mode">
+          <button id="modeEndless" class="active" type="button">Endless</button>
+          <button id="modeChallenge" type="button">10 Rounds</button>
+        </div>
+        <button id="themeToggle" class="icon-btn" type="button" title="Toggle neutral dark background for color judgment">
+          ◐ Dark room
+        </button>
+        <button id="modelBtn" class="icon-btn" type="button" title="How laser wavelengths are rendered on screen">
+          ⓘ Color model
+        </button>
+      </div>
+    </header>
+
+    <main class="card">
+      <div id="swatchStage" class="swatch-stage">
+        <div id="roundBadge" class="round-badge">Round 1</div>
+        <div id="targetPane" class="swatch-pane swatch-target">
+          <span id="targetPill" class="swatch-pill" style="display:none;"></span>
+        </div>
+        <div id="guessPane" class="swatch-pane swatch-guess">
+          <span id="guessPill" class="swatch-pill"></span>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <!-- Guessing Controls -->
+        <div id="guessBox" class="guess-box">
+          <div class="guess-header">
+            <div class="nm-input-wrap">
+              <input
+                id="nmInput"
+                class="nm-input"
+                type="number"
+                min="380"
+                max="700"
+                step="1"
+                value="540"
+                aria-label="Guessed wavelength in nanometers"
+              />
+              <span class="nm-unit">nm</span>
+            </div>
+            <div id="livePhysics" class="live-physics">2.30 eV · 555 THz</div>
+          </div>
+
+          <div class="slider-wrap">
+            <input
+              id="nmSlider"
+              type="range"
+              min="380"
+              max="700"
+              step="1"
+              value="540"
+              aria-label="Wavelength slider"
+            />
+            <div class="slider-ticks">
+              <span>380 nm</span>
+              <span>460</span>
+              <span>540</span>
+              <span>620</span>
+              <span>700 nm</span>
+            </div>
+          </div>
+
+          <button id="submitBtn" class="btn-primary" type="button">Submit Guess</button>
+        </div>
+
+        <!-- Reveal State -->
+        <div id="revealBox" class="reveal-box">
+          <div class="result-row">
+            <div class="result-main">
+              <span id="errorBadge" class="error-badge good">Exact!</span>
+              <span id="verdictText" class="verdict-text">Spot on</span>
+            </div>
+            <span id="pointsBadge" class="points-badge">+1000 pts</span>
+          </div>
+
+          <div class="spectrum-track-wrap">
+            <div id="spectrumBar" class="spectrum-bar"></div>
+            <div id="trueMarker" class="spectrum-marker">
+              <span id="trueMarkerLabel" class="marker-label top"></span>
+              <div id="trueMarkerDot" class="marker-dot"></div>
+            </div>
+            <div id="guessMarker" class="spectrum-marker">
+              <div class="marker-dot guess"></div>
+              <span id="guessMarkerLabel" class="marker-label bottom"></span>
+            </div>
+          </div>
+
+          <div id="physicsStrip" class="physics-strip"></div>
+          <div id="famousLine" class="famous-line"></div>
+
+          <button id="nextBtn" class="btn-primary" type="button">Next Wavelength</button>
+        </div>
+
+        <!-- 10-Round Challenge Summary -->
+        <div id="summaryBox" class="summary-box">
+          <div style="font-weight:700; font-size:1rem;">10-Round Challenge Complete</div>
+          <div id="summaryScore" class="summary-score">0 / 10,000</div>
+          <div id="summarySub" class="summary-sub"></div>
+          <div class="summary-grid">
+            <div class="summary-stat">
+              <div id="sumMae" class="val">—</div>
+              <div class="lbl">Mean Error</div>
+            </div>
+            <div class="summary-stat">
+              <div id="sumBest" class="val">—</div>
+              <div class="lbl">Closest Guess</div>
+            </div>
+            <div class="summary-stat">
+              <div id="sumBias" class="val">—</div>
+              <div class="lbl">Avg Bias</div>
+            </div>
+          </div>
+          <button id="restartBtn" class="btn-primary" type="button">Play 10 Rounds Again</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Calibration & Stats -->
+    <section class="card">
+      <div class="stats-header">
+        <h2>Perceptual Calibration</h2>
+        <button id="resetStatsBtn" class="text-btn" type="button">Reset history</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-tile">
+          <div id="statRounds" class="val">0</div>
+          <div class="lbl">Rounds</div>
+        </div>
+        <div class="stat-tile">
+          <div id="statMae" class="val">—</div>
+          <div class="lbl">Mean Error</div>
+        </div>
+        <div class="stat-tile">
+          <div id="statBias" class="val">—</div>
+          <div class="lbl">Signed Bias</div>
+        </div>
+        <div class="stat-tile">
+          <div id="statStreak" class="val">0</div>
+          <div class="lbl">Streak (≤15 nm)</div>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="chart-caption">
+          <span>Error (guess − true) across the spectrum</span>
+          <span>Above 0 = guessed too red</span>
+        </div>
+        <canvas id="calibrationChart" aria-label="Scatter plot of wavelength estimation error"></canvas>
+        <div id="chartTooltip" class="chart-tooltip"></div>
+      </div>
+    </section>
+
+    <footer>
+      <div>
+        <kbd>←</kbd> <kbd>→</kbd> ±1 nm &nbsp;·&nbsp;
+        <kbd>Shift</kbd> + <kbd>←</kbd>/<kbd>→</kbd> ±10 nm &nbsp;·&nbsp;
+        <kbd>Enter</kbd> submit / next
+      </div>
+      <div>
+        CIE 1931 2° · Bezold–Brücke laser appearance · <span id="footerGamut">sRGB</span> ·
+        <button id="footerModelBtn" class="text-btn" type="button">How it works</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Color Model Explanation Modal -->
+  <div id="modelModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h2 id="modalTitle">Laser Color Model</h2>
+          <span id="gamutPill" class="gamut-pill">sRGB</span>
+        </div>
+        <button id="closeModalBtn" class="close-btn" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">
+          Monochromatic laser light lies outside every standard monitor's RGB gamut, and a bright laser spot triggers visual nonlinearities that a dim color-matching patch does not. This engine models <strong>perceived laser appearance</strong> in four steps:
+        </p>
+
+        <!-- Interactive CIE 1931 Chromaticity Explorer -->
+        <div class="cie-demo">
+          <canvas id="cieCanvas" aria-label="CIE 1931 xy chromaticity diagram"></canvas>
+          <div class="cie-inspector">
+            <div class="inspector-top">
+              <div id="inspSwatch" class="inspector-swatch"></div>
+              <div>
+                <div id="inspWl" class="inspector-wl">532 nm</div>
+                <div class="inspector-sub">Scrub to inspect laser mapping</div>
+              </div>
+            </div>
+            <input id="inspSlider" type="range" min="380" max="700" step="1" value="532" aria-label="Inspect wavelength" />
+            <div class="inspector-readout">
+              <span>Physical xy</span><strong id="inspSpectralXY">—</strong>
+              <span>Laser λ<sub>eff</sub></span><strong id="inspEffWl">—</strong>
+              <span>Oklab hue</span><strong id="inspHue">—</strong>
+              <span>Display xy</span><strong id="inspMappedXY">—</strong>
+              <span>Output</span><strong id="inspRGB">—</strong>
+            </div>
+            <div class="cie-legend">
+              <span><span class="legend-dot" style="background:#ef4444;"></span>Physical λ</span>
+              <span><span class="legend-dot" style="background:#f59e0b;"></span>Bezold–Brücke λ<sub>eff</sub></span>
+              <span><span class="legend-dot" style="background:var(--accent);"></span>Display gamut</span>
+            </div>
+          </div>
+        </div>
+
+        <ol class="pipeline-steps">
+          <li>
+            <strong>Bezold–Brücke High-Luminance Shift (λ → λ<sub>eff</sub>)</strong>
+            <p>CIE 1931 color matching was measured at moderate brightness. At the high luminance of a real laser spot, cone response compression shifts hues toward three psychophysical invariant wavelengths (474 nm blue, 506 nm blue-green, and 574 nm yellow). In particular, a bright 532 nm Nd:YAG laser shifts warmer into vivid emerald green rather than dim cyan-mint, and a 633 nm HeNe laser picks up its characteristic slight orange-red warmth.</p>
+          </li>
+          <li>
+            <strong>CIE 1931 2° Standard Observer</strong>
+            <p>The shifted wavelength λ<sub>eff</sub> is evaluated against the tabulated 5 nm CIE 1931 2° color-matching functions x̄(λ), ȳ(λ), z̄(λ) (interpolated to 1 nm) to obtain tristimulus values (X, Y, Z).</p>
+          </li>
+          <li>
+            <strong>Oklab Constant-Hue Projection onto Display P3 / sRGB</strong>
+            <p>Instead of hard-clipping negative channels or mixing linearly with D65 white (which introduces the <em>Abney effect</em> hue drift), (X, Y, Z) is converted into <strong>Oklab</strong> to extract perceived hue h(λ<sub>eff</sub>) and projected onto the maximum-chroma ridge of your screen's actual gamut (<strong>Display P3</strong> on wide-gamut displays, falling back to <strong>sRGB</strong>). Deep reds (&gt;615 nm) clamp cleanly at the red primary so 650+ nm lasers never leak blue or turn pinkish.</p>
+          </li>
+          <li>
+            <strong>Photopic Visibility Rolloff</strong>
+            <p>Because human photopic sensitivity ȳ(λ) falls off steeply in the deep violet (&lt;430 nm) and deep red (&gt;635 nm), linear brightness is rolled off using the physical wavelength's true ȳ(λ) before applying the IEC 61966-2-1 transfer curve—preserving the darkening transition from 633 nm HeNe to 650 nm pointer red to 694 nm ruby.</p>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      // ============================================================
+      // 1. Display Gamut Detection (Display P3 with sRGB Fallback)
+      // ============================================================
+      const SUPPORTS_P3 = Boolean(
+        window.matchMedia &&
+        window.matchMedia('(color-gamut: p3)').matches &&
+        window.CSS &&
+        window.CSS.supports('color', 'color(display-p3 1 0 0)')
+      );
+
+      const GAMUT_NAME = SUPPORTS_P3 ? 'Display P3' : 'sRGB';
+
+      // Linear RGB -> CIE XYZ (D65) matrices
+      const MATRIX_P3_TO_XYZ = [
+        [0.4865709, 0.2656677, 0.1982173],
+        [0.2289746, 0.6917385, 0.0792869],
+        [0.0000000, 0.0451134, 1.0439444]
+      ];
+
+      const MATRIX_SRGB_TO_XYZ = [
+        [0.4124564, 0.3575761, 0.1804375],
+        [0.2126729, 0.7151522, 0.0721750],
+        [0.0193339, 0.1191920, 0.9503041]
+      ];
+
+      const ACTIVE_RGB_TO_XYZ = SUPPORTS_P3 ? MATRIX_P3_TO_XYZ : MATRIX_SRGB_TO_XYZ;
+
+      function linearRGBToXYZ(r, g, b, M = ACTIVE_RGB_TO_XYZ) {
+        return [
+          M[0][0] * r + M[0][1] * g + M[0][2] * b,
+          M[1][0] * r + M[1][1] * g + M[1][2] * b,
+          M[2][0] * r + M[2][1] * g + M[2][2] * b
+        ];
+      }
+
+      // ============================================================
+      // 2. Exact CIE 1931 2° Standard Observer Table (380-700 nm, 5 nm)
+      // ============================================================
+      const CIE_1931_2DEG = [
+        [0.001368, 0.000039, 0.006450], // 380
+        [0.002236, 0.000064, 0.010550], // 385
+        [0.004243, 0.000120, 0.020050], // 390
+        [0.007650, 0.000217, 0.036210], // 395
+        [0.014310, 0.000396, 0.067850], // 400
+        [0.023190, 0.000640, 0.110200], // 405
+        [0.043510, 0.001210, 0.207400], // 410
+        [0.077630, 0.002180, 0.371300], // 415
+        [0.134380, 0.004000, 0.645600], // 420
+        [0.214770, 0.007300, 1.039050], // 425
+        [0.283900, 0.011600, 1.385600], // 430
+        [0.328500, 0.016840, 1.622960], // 435
+        [0.348280, 0.023000, 1.747060], // 440
+        [0.348060, 0.029800, 1.782600], // 445
+        [0.336200, 0.038000, 1.772110], // 450
+        [0.318700, 0.048000, 1.744100], // 455
+        [0.290800, 0.060000, 1.669200], // 460
+        [0.251100, 0.073900, 1.528100], // 465
+        [0.195360, 0.090980, 1.287640], // 470
+        [0.142100, 0.112600, 1.041900], // 475
+        [0.095640, 0.139020, 0.812950], // 480
+        [0.057950, 0.169300, 0.616200], // 485
+        [0.032010, 0.208020, 0.465180], // 490
+        [0.014700, 0.258600, 0.353300], // 495
+        [0.004900, 0.323000, 0.272000], // 500
+        [0.002400, 0.407300, 0.212300], // 505
+        [0.009300, 0.503000, 0.158200], // 510
+        [0.029100, 0.608200, 0.111700], // 515
+        [0.063270, 0.710000, 0.078250], // 520
+        [0.109600, 0.793200, 0.057250], // 525
+        [0.165500, 0.862000, 0.042160], // 530
+        [0.225750, 0.914850, 0.029840], // 535
+        [0.290400, 0.954000, 0.020300], // 540
+        [0.359700, 0.980300, 0.013400], // 545
+        [0.433450, 0.994950, 0.008750], // 550
+        [0.512050, 1.000000, 0.005750], // 555
+        [0.594500, 0.995000, 0.003900], // 560
+        [0.678400, 0.978600, 0.002750], // 565
+        [0.762100, 0.952000, 0.002100], // 570
+        [0.842500, 0.915400, 0.001800], // 575
+        [0.916300, 0.870000, 0.001650], // 580
+        [0.978600, 0.816300, 0.001400], // 585
+        [1.026300, 0.757000, 0.001100], // 590
+        [1.056700, 0.694900, 0.001000], // 595
+        [1.062200, 0.631000, 0.000800], // 600
+        [1.045600, 0.566800, 0.000600], // 605
+        [1.002600, 0.503000, 0.000340], // 610
+        [0.938400, 0.441200, 0.000240], // 615
+        [0.854450, 0.381000, 0.000190], // 620
+        [0.751400, 0.321000, 0.000100], // 625
+        [0.642400, 0.265000, 0.000050], // 630
+        [0.541900, 0.217000, 0.000030], // 635
+        [0.447900, 0.175000, 0.000020], // 640
+        [0.360800, 0.138200, 0.000010], // 645
+        [0.283500, 0.107000, 0.000000], // 650
+        [0.218700, 0.081600, 0.000000], // 655
+        [0.164900, 0.061000, 0.000000], // 660
+        [0.121200, 0.044580, 0.000000], // 665
+        [0.087400, 0.032000, 0.000000], // 670
+        [0.063600, 0.023200, 0.000000], // 675
+        [0.046770, 0.017000, 0.000000], // 680
+        [0.032900, 0.011920, 0.000000], // 685
+        [0.022700, 0.008210, 0.000000], // 690
+        [0.015840, 0.005723, 0.000000], // 695
+        [0.011359, 0.004102, 0.000000]  // 700
+      ];
+
+      function wavelengthToXYZ(wl) {
+        const clamped = Math.max(380, Math.min(700, wl));
+        const pos = (clamped - 380) / 5;
+        const i = Math.min(CIE_1931_2DEG.length - 2, Math.floor(pos));
+        const t = pos - i;
+        const a = CIE_1931_2DEG[i];
+        const b = CIE_1931_2DEG[i + 1];
+        return [
+          a[0] + (b[0] - a[0]) * t,
+          a[1] + (b[1] - a[1]) * t,
+          a[2] + (b[2] - a[2]) * t
+        ];
+      }
+
+      // ============================================================
+      // 3. Bezold-Brücke High-Luminance Laser Hue Shift
+      //    Anchored at Purdy's 3 invariant wavelengths: 474, 506, 574 nm.
+      //    Strictly monotonic across [380, 700] nm.
+      // ============================================================
+      function bezoldBruckeEffectiveWl(wl) {
+        let shift = 0;
+        if (wl < 474) {
+          shift = 6.0 * Math.sin(Math.PI * (wl - 380) / 94);
+        } else if (wl < 506) {
+          shift = -4.0 * Math.sin(Math.PI * (wl - 474) / 32);
+        } else if (wl < 574) {
+          shift = 12.0 * Math.sin(Math.PI * (wl - 506) / 68);
+        } else {
+          shift = -20.0 * Math.sin(Math.PI * (wl - 574) / 126);
+        }
+        return Math.max(380, Math.min(700, wl + shift));
+      }
+
+      // ============================================================
+      // 4. Oklab Constant-Hue Projection onto Active Display Gamut
+      // ============================================================
+      function xyzToOklab(X, Y, Z) {
+        const l = Math.cbrt( 0.8189330101 * X + 0.3618667424 * Y - 0.1288597137 * Z);
+        const m = Math.cbrt( 0.0329845436 * X + 0.9293118715 * Y + 0.0361456387 * Z);
+        const s = Math.cbrt( 0.0482003018 * X + 0.2643662691 * Y + 0.6338517070 * Z);
+        return [
+          0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+          1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+          0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s
+        ];
+      }
+
+      const TWO_PI = Math.PI * 2;
+      const normAngle = (a) => ((a % TWO_PI) + TWO_PI) % TWO_PI;
+      const signedAngleDiff = (a, b) => ((a - b + Math.PI * 3) % TWO_PI) - Math.PI;
+
+      function linearRGBToOklabHue(r, g, b) {
+        const [X, Y, Z] = linearRGBToXYZ(r, g, b);
+        const [, oa, ob] = xyzToOklab(X, Y, Z);
+        return normAngle(Math.atan2(ob, oa));
+      }
+
+      const RIDGE_CORNERS = [
+        [1, 0, 0], // Red
+        [1, 1, 0], // Yellow
+        [0, 1, 0], // Green
+        [0, 1, 1], // Cyan
+        [0, 0, 1], // Blue
+        [1, 0, 1]  // Magenta
+      ];
+      const RIDGE_HUES = RIDGE_CORNERS.map(([r, g, b]) => linearRGBToOklabHue(r, g, b));
+
+      function oklabHueToGamutRidge(targetHue, effWl) {
+        // Never wrap long-wavelength deep red onto the non-spectral Red-Magenta edge
+        if (effWl > 590 && signedAngleDiff(targetHue, RIDGE_HUES[0]) < 0) {
+          return [1, 0, 0];
+        }
+
+        let edgeIdx = 0;
+        for (let i = 0; i < 6; i++) {
+          const ha = RIDGE_HUES[i];
+          const hb = RIDGE_HUES[(i + 1) % 6];
+          const span = normAngle(hb - ha);
+          const off = normAngle(targetHue - ha);
+          if (off <= span + 1e-9) {
+            edgeIdx = i;
+            break;
+          }
+        }
+
+        const cA = RIDGE_CORNERS[edgeIdx];
+        const cB = RIDGE_CORNERS[(edgeIdx + 1) % 6];
+        let lo = 0;
+        let hi = 1;
+        for (let iter = 0; iter < 24; iter++) {
+          const mid = 0.5 * (lo + hi);
+          const r = cA[0] + (cB[0] - cA[0]) * mid;
+          const g = cA[1] + (cB[1] - cA[1]) * mid;
+          const b = cA[2] + (cB[2] - cA[2]) * mid;
+          const hMid = linearRGBToOklabHue(r, g, b);
+          if (signedAngleDiff(hMid, targetHue) < 0) lo = mid;
+          else hi = mid;
+        }
+
+        const t = 0.5 * (lo + hi);
+        return [
+          cA[0] + (cB[0] - cA[0]) * t,
+          cA[1] + (cB[1] - cA[1]) * t,
+          cA[2] + (cB[2] - cA[2]) * t
+        ];
+      }
+
+      // IEC 61966-2-1 transfer curve (used by both sRGB and Display P3)
+      function encodeTransfer(c) {
+        const x = Math.max(0, Math.min(1, c));
+        return x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055;
+      }
+
+      // Photopic edge rolloff using physical wavelength's CIE y_bar(λ)
+      const Y_REF_VIOLET = 0.011600; // y_bar(430 nm)
+      const Y_REF_RED    = 0.217000; // y_bar(635 nm)
+
+      function photopicEdgeFactor(wl, physicalY) {
+        if (wl < 430) return Math.min(1, Math.pow(Math.max(1e-6, physicalY) / Y_REF_VIOLET, 0.38));
+        if (wl > 635) return Math.min(1, Math.pow(Math.max(1e-6, physicalY) / Y_REF_RED, 0.48));
+        return 1.0;
+      }
+
+      const colorCache = new Map();
+
+      function evaluateWavelengthColor(wl) {
+        const key = Math.round(wl * 10);
+        if (colorCache.has(key)) return colorCache.get(key);
+
+        // Physical CIE 1931 coordinates (for diagram + photopic visibility rolloff)
+        const [pX, pY, pZ] = wavelengthToXYZ(wl);
+        const pSum = pX + pY + pZ;
+        const spectralX = pX / pSum;
+        const spectralY = pY / pSum;
+
+        // Bezold-Brücke laser-perceived CIE 1931 coordinates
+        const effWl = bezoldBruckeEffectiveWl(wl);
+        const [eX, eY, eZ] = wavelengthToXYZ(effWl);
+        const eSum = eX + eY + eZ;
+        const effX = eX / eSum;
+        const effY = eY / eSum;
+
+        const [, oa, ob] = xyzToOklab(eX, eY, eZ);
+        const hueRad = normAngle(Math.atan2(ob, oa));
+
+        // Project onto active gamut ridge (Display P3 or sRGB)
+        const [rRidge, gRidge, bRidge] = oklabHueToGamutRidge(hueRad, effWl);
+        const [mX, mY, mZ] = linearRGBToXYZ(rRidge, gRidge, bRidge);
+        const mSum = mX + mY + mZ;
+        const mappedX = mX / mSum;
+        const mappedY = mY / mSum;
+
+        const atten = photopicEdgeFactor(wl, pY);
+        const rEnc = encodeTransfer(rRidge * atten);
+        const gEnc = encodeTransfer(gRidge * atten);
+        const bEnc = encodeTransfer(bRidge * atten);
+
+        const css = SUPPORTS_P3
+          ? `color(display-p3 ${rEnc.toFixed(4)} ${gEnc.toFixed(4)} ${bEnc.toFixed(4)})`
+          : `rgb(${Math.round(rEnc * 255)}, ${Math.round(gEnc * 255)}, ${Math.round(bEnc * 255)})`;
+
+        const label = SUPPORTS_P3
+          ? `p3(${rEnc.toFixed(2)}, ${gEnc.toFixed(2)}, ${bEnc.toFixed(2)})`
+          : `rgb(${Math.round(rEnc * 255)}, ${Math.round(gEnc * 255)}, ${Math.round(bEnc * 255)})`;
+
+        const result = {
+          css,
+          label,
+          effWl,
+          spectralX, spectralY,
+          effX, effY,
+          mappedX, mappedY,
+          hueDeg: (hueRad * 180) / Math.PI
+        };
+        colorCache.set(key, result);
+        return result;
+      }
+
+      const wavelengthToCSS = (wl) => evaluateWavelengthColor(wl).css;
+
+      function getCanvasCtx(canvas) {
+        if (SUPPORTS_P3) {
+          try {
+            const p3ctx = canvas.getContext('2d', { colorSpace: 'display-p3' });
+            if (p3ctx) return p3ctx;
+          } catch (_) {}
+        }
+        return canvas.getContext('2d');
+      }
+
+      // ============================================================
+      // 5. Optical Physics Helpers & Famous Spectral Lines
+      // ============================================================
+      const C_NM_THZ = 299792.458;
+      const HC_EV_NM = 1239.841984;
+
+      const nmToEnergyEV = (wl) => HC_EV_NM / wl;
+      const nmToFreqTHz = (wl) => C_NM_THZ / wl;
+      const nmToWavenumber = (wl) => Math.round(1e7 / wl);
+
+      const FAMOUS_LINES = [
+        { wl: 405,   label: '405 nm — Blu-ray / InGaN violet diode laser' },
+        { wl: 435.8, label: '435.8 nm — Mercury g-line (violet-blue)' },
+        { wl: 445,   label: '445 nm — Blue GaN diode laser' },
+        { wl: 486.1, label: '486.1 nm — Hydrogen-β (Balmer line)' },
+        { wl: 488,   label: '488 nm — Argon-ion cyan-blue laser' },
+        { wl: 514.5, label: '514.5 nm — Argon-ion green laser' },
+        { wl: 532,   label: '532 nm — Frequency-doubled Nd:YAG green laser' },
+        { wl: 546.1, label: '546.1 nm — Mercury e-line (green)' },
+        { wl: 555,   label: '555 nm — Peak human photopic sensitivity' },
+        { wl: 589.3, label: '589.3 nm — Sodium D-line doublet' },
+        { wl: 594.1, label: '594.1 nm — Yellow HeNe laser' },
+        { wl: 632.8, label: '632.8 nm — Helium–Neon (HeNe) laser' },
+        { wl: 650,   label: '650 nm — Classic red diode laser pointer' },
+        { wl: 656.3, label: '656.3 nm — Hydrogen-α (Balmer line)' },
+        { wl: 694.3, label: '694.3 nm — Ruby laser (first optical laser)' }
+      ];
+
+      function findNearestFamousLine(wl) {
+        let best = null;
+        let bestDist = Infinity;
+        for (const line of FAMOUS_LINES) {
+          const d = Math.abs(wl - line.wl);
+          if (d < bestDist) {
+            bestDist = d;
+            best = line;
+          }
+        }
+        return bestDist <= 5 ? { line: best, dist: bestDist } : null;
+      }
+
+      function scoreGuess(absErr) {
+        return Math.round(1000 * Math.exp(-(absErr * absErr) / (2 * 22 * 22)));
+      }
+
+      function verdictForError(absErr) {
+        if (absErr === 0) return { text: 'Spectrometer eyes!', cls: 'good' };
+        if (absErr <= 5)  return { text: 'Laser-sharp', cls: 'good' };
+        if (absErr <= 12) return { text: 'Very close', cls: 'good' };
+        if (absErr <= 22) return { text: 'Solid estimate', cls: 'ok' };
+        if (absErr <= 40) return { text: 'In the ballpark', cls: 'ok' };
+        return { text: 'Off band', cls: 'miss' };
+      }
+
+      // ============================================================
+      // 6. State & Persistence
+      // ============================================================
+      const STORAGE_KEY = 'guess_wavelength_v4';
+      const MIN_TARGET = 390;
+      const MAX_TARGET = 690;
+      const CHALLENGE_LENGTH = 10;
+
+      let state = {
+        mode: 'endless', // 'endless' | 'challenge'
+        phase: 'guess',  // 'guess' | 'reveal' | 'summary'
+        target: 532,
+        lastGuess: 540,
+        round: 1,
+        challengeRounds: [],
+        history: [],     // [{ target, guess, err, score }]
+        streak: 0,
+        bestStreak: 0
+      };
+
+      function loadStorage() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('guess_wavelength_v3');
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed.history)) state.history = parsed.history.slice(-200);
+          if (typeof parsed.streak === 'number') state.streak = parsed.streak;
+          if (typeof parsed.bestStreak === 'number') state.bestStreak = parsed.bestStreak;
+          if (parsed.darkRoom) document.body.classList.add('dark-room');
+        } catch (_) {}
+      }
+
+      function saveStorage() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            history: state.history.slice(-200),
+            streak: state.streak,
+            bestStreak: state.bestStreak,
+            darkRoom: document.body.classList.contains('dark-room')
+          }));
+        } catch (_) {}
+      }
+
+      // ============================================================
+      // 7. DOM References
+      // ============================================================
+      const el = {
+        modeEndless: document.getElementById('modeEndless'),
+        modeChallenge: document.getElementById('modeChallenge'),
+        themeToggle: document.getElementById('themeToggle'),
+        modelBtn: document.getElementById('modelBtn'),
+        footerModelBtn: document.getElementById('footerModelBtn'),
+        footerGamut: document.getElementById('footerGamut'),
+        gamutPill: document.getElementById('gamutPill'),
+        swatchStage: document.getElementById('swatchStage'),
+        roundBadge: document.getElementById('roundBadge'),
+        targetPane: document.getElementById('targetPane'),
+        guessPane: document.getElementById('guessPane'),
+        targetPill: document.getElementById('targetPill'),
+        guessPill: document.getElementById('guessPill'),
+        guessBox: document.getElementById('guessBox'),
+        revealBox: document.getElementById('revealBox'),
+        summaryBox: document.getElementById('summaryBox'),
+        nmInput: document.getElementById('nmInput'),
+        nmSlider: document.getElementById('nmSlider'),
+        livePhysics: document.getElementById('livePhysics'),
+        submitBtn: document.getElementById('submitBtn'),
+        nextBtn: document.getElementById('nextBtn'),
+        restartBtn: document.getElementById('restartBtn'),
+        errorBadge: document.getElementById('errorBadge'),
+        verdictText: document.getElementById('verdictText'),
+        pointsBadge: document.getElementById('pointsBadge'),
+        spectrumBar: document.getElementById('spectrumBar'),
+        trueMarker: document.getElementById('trueMarker'),
+        trueMarkerLabel: document.getElementById('trueMarkerLabel'),
+        trueMarkerDot: document.getElementById('trueMarkerDot'),
+        guessMarker: document.getElementById('guessMarker'),
+        guessMarkerLabel: document.getElementById('guessMarkerLabel'),
+        physicsStrip: document.getElementById('physicsStrip'),
+        famousLine: document.getElementById('famousLine'),
+        summaryScore: document.getElementById('summaryScore'),
+        summarySub: document.getElementById('summarySub'),
+        sumMae: document.getElementById('sumMae'),
+        sumBest: document.getElementById('sumBest'),
+        sumBias: document.getElementById('sumBias'),
+        statRounds: document.getElementById('statRounds'),
+        statMae: document.getElementById('statMae'),
+        statBias: document.getElementById('statBias'),
+        statStreak: document.getElementById('statStreak'),
+        resetStatsBtn: document.getElementById('resetStatsBtn'),
+        canvas: document.getElementById('calibrationChart'),
+        tooltip: document.getElementById('chartTooltip'),
+        modelModal: document.getElementById('modelModal'),
+        closeModalBtn: document.getElementById('closeModalBtn'),
+        cieCanvas: document.getElementById('cieCanvas'),
+        inspSlider: document.getElementById('inspSlider'),
+        inspSwatch: document.getElementById('inspSwatch'),
+        inspWl: document.getElementById('inspWl'),
+        inspSpectralXY: document.getElementById('inspSpectralXY'),
+        inspEffWl: document.getElementById('inspEffWl'),
+        inspHue: document.getElementById('inspHue'),
+        inspMappedXY: document.getElementById('inspMappedXY'),
+        inspRGB: document.getElementById('inspRGB')
+      };
+
+      function buildSpectrumGradient() {
+        const stops = [];
+        for (let wl = 380; wl <= 700; wl += 5) {
+          const pct = (((wl - 380) / 320) * 100).toFixed(2);
+          stops.push(`${wavelengthToCSS(wl)} ${pct}%`);
+        }
+        el.spectrumBar.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
+      }
+
+      // ============================================================
+      // 8. Game Flow
+      // ============================================================
+      function pickRandomTarget(prevTarget) {
+        let candidate;
+        let attempts = 0;
+        do {
+          candidate = MIN_TARGET + Math.floor(Math.random() * (MAX_TARGET - MIN_TARGET + 1));
+          attempts++;
+        } while (prevTarget !== undefined && Math.abs(candidate - prevTarget) < 25 && attempts < 10);
+        return candidate;
+      }
+
+      function updateLivePhysics(wl) {
+        const e = nmToEnergyEV(wl).toFixed(2);
+        const f = nmToFreqTHz(wl).toFixed(0);
+        el.livePhysics.textContent = `${e} eV · ${f} THz`;
+      }
+
+      function setGuessValue(wl) {
+        const clamped = Math.max(380, Math.min(700, Math.round(wl)));
+        el.nmSlider.value = clamped;
+        el.nmInput.value = clamped;
+        updateLivePhysics(clamped);
+      }
+
+      function startRound() {
+        state.phase = 'guess';
+        state.target = pickRandomTarget(state.target);
+
+        el.swatchStage.classList.remove('revealed');
+        el.targetPane.style.backgroundColor = wavelengthToCSS(state.target);
+        el.targetPill.style.display = 'none';
+        el.guessPill.textContent = '';
+
+        el.roundBadge.textContent = state.mode === 'challenge'
+          ? `Round ${state.round} / ${CHALLENGE_LENGTH}`
+          : `Round ${state.history.length + 1}`;
+
+        el.guessBox.classList.remove('hidden');
+        el.revealBox.classList.remove('visible');
+        el.summaryBox.classList.remove('visible');
+
+        setGuessValue(540);
+      }
+
+      function submitGuess() {
+        if (state.phase !== 'guess') return;
+        let guess = parseInt(el.nmInput.value, 10);
+        if (Number.isNaN(guess)) guess = parseInt(el.nmSlider.value, 10);
+        guess = Math.max(380, Math.min(700, guess));
+        setGuessValue(guess);
+
+        const target = state.target;
+        const err = guess - target;
+        const absErr = Math.abs(err);
+        const score = scoreGuess(absErr);
+        const verdict = verdictForError(absErr);
+
+        state.phase = 'reveal';
+        state.lastGuess = guess;
+        const entry = { target, guess, err, score };
+        state.history.push(entry);
+
+        if (absErr <= 15) {
+          state.streak += 1;
+          if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+        } else {
+          state.streak = 0;
+        }
+
+        if (state.mode === 'challenge') {
+          state.challengeRounds.push(entry);
+        }
+
+        saveStorage();
+
+        el.guessPane.style.backgroundColor = wavelengthToCSS(guess);
+        el.targetPill.textContent = `Target: ${target} nm`;
+        el.targetPill.style.display = 'inline-block';
+        el.guessPill.textContent = `Guess: ${guess} nm`;
+        el.swatchStage.classList.add('revealed');
+
+        const sign = err > 0 ? '+' : '';
+        el.errorBadge.textContent = err === 0 ? '0 nm' : `${sign}${err} nm`;
+        el.errorBadge.className = `error-badge ${verdict.cls}`;
+        el.verdictText.textContent = verdict.text;
+        el.pointsBadge.textContent = `+${score} pts`;
+
+        const truePct = ((target - 380) / 320) * 100;
+        const guessPct = ((guess - 380) / 320) * 100;
+        el.trueMarker.style.left = `${truePct}%`;
+        el.trueMarkerDot.style.backgroundColor = wavelengthToCSS(target);
+        el.trueMarkerLabel.textContent = `${target} nm`;
+
+        el.guessMarker.style.left = `${guessPct}%`;
+        el.guessMarkerLabel.textContent = `${guess} nm`;
+
+        el.physicsStrip.innerHTML =
+          `<span>λ = <strong>${target} nm</strong></span>` +
+          `<span>E = ${nmToEnergyEV(target).toFixed(2)} eV</span>` +
+          `<span>ν = ${nmToFreqTHz(target).toFixed(1)} THz</span>` +
+          `<span>ν̃ = ${nmToWavenumber(target).toLocaleString()} cm⁻¹</span>`;
+
+        const near = findNearestFamousLine(target);
+        if (near) {
+          const prefix = near.dist <= 1.2 ? '✦ Spectral line: ' : '✦ Near ';
+          el.famousLine.textContent = `${prefix}${near.line.label}`;
+          el.famousLine.classList.add('visible');
+        } else {
+          el.famousLine.classList.remove('visible');
+        }
+
+        el.nextBtn.textContent = (state.mode === 'challenge' && state.round >= CHALLENGE_LENGTH)
+          ? 'See Challenge Results'
+          : 'Next Wavelength';
+
+        el.guessBox.classList.add('hidden');
+        el.revealBox.classList.add('visible');
+
+        renderStats();
+        drawChart();
+      }
+
+      function advanceRound() {
+        if (state.phase !== 'reveal') return;
+        if (state.mode === 'challenge' && state.round >= CHALLENGE_LENGTH) {
+          showChallengeSummary();
+          return;
+        }
+        state.round += 1;
+        startRound();
+      }
+
+      function showChallengeSummary() {
+        state.phase = 'summary';
+        const rounds = state.challengeRounds;
+        const totalScore = rounds.reduce((s, r) => s + r.score, 0);
+        const mae = rounds.reduce((s, r) => s + Math.abs(r.err), 0) / rounds.length;
+        const bias = rounds.reduce((s, r) => s + r.err, 0) / rounds.length;
+        const best = Math.min(...rounds.map(r => Math.abs(r.err)));
+
+        el.summaryScore.textContent = `${totalScore.toLocaleString()} / 10,000`;
+        let rank = 'Keep calibrating!';
+        if (totalScore >= 9000) rank = 'Human grating spectrometer.';
+        else if (totalScore >= 7800) rank = 'Sharp optical intuition.';
+        else if (totalScore >= 6000) rank = 'Solid chromatic sense.';
+        el.summarySub.textContent = rank;
+
+        el.sumMae.textContent = `${mae.toFixed(1)} nm`;
+        el.sumBest.textContent = `±${best} nm`;
+        el.sumBias.textContent = `${bias >= 0 ? '+' : ''}${bias.toFixed(1)} nm`;
+
+        el.revealBox.classList.remove('visible');
+        el.summaryBox.classList.add('visible');
+      }
+
+      function switchMode(newMode) {
+        if (state.mode === newMode && state.phase !== 'summary') return;
+        state.mode = newMode;
+        state.round = 1;
+        state.challengeRounds = [];
+
+        el.modeEndless.classList.toggle('active', newMode === 'endless');
+        el.modeChallenge.classList.toggle('active', newMode === 'challenge');
+        startRound();
+      }
+
+      // ============================================================
+      // 9. Stats & Perceptual Calibration Chart
+      // ============================================================
+      function renderStats() {
+        const n = state.history.length;
+        el.statRounds.textContent = n;
+        el.statStreak.textContent = state.streak;
+
+        if (n === 0) {
+          el.statMae.textContent = '—';
+          el.statBias.textContent = '—';
+          return;
+        }
+
+        const mae = state.history.reduce((s, r) => s + Math.abs(r.err), 0) / n;
+        const bias = state.history.reduce((s, r) => s + r.err, 0) / n;
+        el.statMae.textContent = `${mae.toFixed(1)} nm`;
+        el.statBias.textContent = `${bias >= 0 ? '+' : ''}${bias.toFixed(1)} nm`;
+      }
+
+      let plottedPoints = [];
+
+      function drawChart() {
+        const canvas = el.canvas;
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width === 0) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+
+        const ctx = getCanvasCtx(canvas);
+        ctx.scale(dpr, dpr);
+
+        const w = rect.width;
+        const h = rect.height;
+        const pad = { top: 14, right: 16, bottom: 26, left: 38 };
+        const plotW = w - pad.left - pad.right;
+        const plotH = h - pad.top - pad.bottom;
+
+        const styles = getComputedStyle(document.body);
+        const textMuted = styles.getPropertyValue('--text-muted').trim();
+        const borderCol = styles.getPropertyValue('--border').trim();
+        const textCol = styles.getPropertyValue('--text').trim();
+
+        ctx.clearRect(0, 0, w, h);
+
+        const maxAbsErr = state.history.reduce((m, r) => Math.max(m, Math.abs(r.err)), 0);
+        const yMax = Math.max(50, Math.ceil(maxAbsErr / 10) * 10 + 5);
+
+        const xOf = (wl) => pad.left + ((wl - 380) / 320) * plotW;
+        const yOf = (err) => pad.top + ((yMax - err) / (2 * yMax)) * plotH;
+
+        ctx.fillStyle = document.body.classList.contains('dark-room')
+          ? 'rgba(74, 222, 128, 0.06)'
+          : 'rgba(34, 197, 94, 0.08)';
+        ctx.fillRect(pad.left, yOf(15), plotW, yOf(-15) - yOf(15));
+
+        ctx.font = '10px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.fillStyle = textMuted;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+
+        for (const t of [yMax, 0, -yMax]) {
+          const y = yOf(t);
+          ctx.beginPath();
+          ctx.strokeStyle = t === 0 ? textMuted : borderCol;
+          ctx.lineWidth = t === 0 ? 1 : 0.75;
+          if (t === 0) ctx.setLineDash([4, 4]);
+          else ctx.setLineDash([]);
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(w - pad.right, y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.fillText(t === 0 ? '0' : (t > 0 ? `+${t}` : `${t}`), pad.left - 6, y);
+        }
+
+        const grad = ctx.createLinearGradient(pad.left, 0, w - pad.right, 0);
+        for (let wl = 380; wl <= 700; wl += 10) {
+          grad.addColorStop((wl - 380) / 320, wavelengthToCSS(wl));
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(pad.left, h - pad.bottom + 2, plotW, 4);
+
+        ctx.fillStyle = textMuted;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        for (const wl of [400, 460, 520, 580, 640, 700]) {
+          ctx.fillText(`${wl}`, xOf(wl), h - pad.bottom + 9);
+        }
+
+        plottedPoints = [];
+        if (state.history.length === 0) {
+          ctx.fillStyle = textMuted;
+          ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('Make a few guesses to plot your spectral error bias', pad.left + plotW / 2, pad.top + plotH / 2);
+          return;
+        }
+
+        const total = state.history.length;
+        state.history.forEach((item, idx) => {
+          const cx = xOf(item.target);
+          const cy = yOf(item.err);
+          const isLatest = idx === total - 1;
+
+          plottedPoints.push({ cx, cy, item, index: idx + 1 });
+
+          ctx.beginPath();
+          ctx.arc(cx, cy, isLatest ? 5.5 : 4, 0, TWO_PI);
+          ctx.fillStyle = wavelengthToCSS(item.target);
+          ctx.globalAlpha = isLatest ? 1 : 0.85;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+
+          ctx.lineWidth = isLatest ? 2 : 1;
+          ctx.strokeStyle = isLatest ? textCol : 'rgba(0,0,0,0.35)';
+          ctx.stroke();
+        });
+      }
+
+      el.canvas.addEventListener('mousemove', (e) => {
+        if (plottedPoints.length === 0) return;
+        const rect = el.canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        let closest = null;
+        let minDist = 14;
+        for (const pt of plottedPoints) {
+          const d = Math.hypot(mx - pt.cx, my - pt.cy);
+          if (d < minDist) {
+            minDist = d;
+            closest = pt;
+          }
+        }
+
+        if (closest) {
+          const { target, guess, err } = closest.item;
+          const sign = err > 0 ? '+' : '';
+          el.tooltip.textContent = `#${closest.index}: ${target} nm → ${guess} nm (${sign}${err})`;
+          el.tooltip.style.left = `${closest.cx + 20}px`;
+          el.tooltip.style.top = `${closest.cy + 16}px`;
+          el.tooltip.style.opacity = '1';
+        } else {
+          el.tooltip.style.opacity = '0';
+        }
+      });
+
+      el.canvas.addEventListener('mouseleave', () => {
+        el.tooltip.style.opacity = '0';
+      });
+
+      // ============================================================
+      // 10. Color Model Modal & CIE 1931 Chromaticity Diagram
+      // ============================================================
+      const SRGB_TRI = [[0.64, 0.33], [0.30, 0.60], [0.15, 0.06]];
+      const P3_TRI   = [[0.68, 0.32], [0.265, 0.69], [0.15, 0.06]];
+      const D65_XY   = [0.3127, 0.3290];
+
+      function drawCIEDiagram(inspWl) {
+        const canvas = el.cieCanvas;
+        const size = 230;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = size * dpr;
+        canvas.height = size * dpr;
+
+        const ctx = getCanvasCtx(canvas);
+        ctx.scale(dpr, dpr);
+
+        const styles = getComputedStyle(document.body);
+        const textMuted = styles.getPropertyValue('--text-muted').trim();
+        const textCol = styles.getPropertyValue('--text').trim();
+        const borderCol = styles.getPropertyValue('--border').trim();
+        const accentCol = styles.getPropertyValue('--accent').trim();
+        const isDark = document.body.classList.contains('dark-room');
+
+        ctx.clearRect(0, 0, size, size);
+
+        const pad = { top: 14, right: 14, bottom: 24, left: 26 };
+        const plotW = size - pad.left - pad.right;
+        const plotH = size - pad.top - pad.bottom;
+
+        const px = (x) => pad.left + (x / 0.8) * plotW;
+        const py = (y) => pad.top + (1 - y / 0.9) * plotH;
+
+        // Grid
+        ctx.strokeStyle = borderCol;
+        ctx.lineWidth = 0.6;
+        for (let v = 0; v <= 0.8; v += 0.2) {
+          ctx.beginPath();
+          ctx.moveTo(px(v), py(0));
+          ctx.lineTo(px(v), py(0.9));
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(px(0), py(v));
+          ctx.lineTo(px(0.8), py(v));
+          ctx.stroke();
+        }
+
+        // Axis labels
+        ctx.fillStyle = textMuted;
+        ctx.font = '9px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('x', pad.left + plotW / 2, size - 6);
+        ctx.save();
+        ctx.translate(9, pad.top + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('y', 0, 0);
+        ctx.restore();
+
+        // Horseshoe interior
+        ctx.beginPath();
+        for (let i = 0; i < CIE_1931_2DEG.length; i++) {
+          const [X, Y, Z] = CIE_1931_2DEG[i];
+          const s = X + Y + Z;
+          const x = px(X / s);
+          const y = py(Y / s);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.035)';
+        ctx.fill();
+
+        // Purple line
+        const first = evaluateWavelengthColor(380);
+        const last = evaluateWavelengthColor(700);
+        ctx.beginPath();
+        ctx.moveTo(px(last.spectralX), py(last.spectralY));
+        ctx.lineTo(px(first.spectralX), py(first.spectralY));
+        ctx.strokeStyle = borderCol;
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([3, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Colored spectral locus
+        ctx.lineWidth = 2.6;
+        ctx.lineCap = 'round';
+        for (let wl = 380; wl < 700; wl += 5) {
+          const c0 = evaluateWavelengthColor(wl);
+          const c1 = evaluateWavelengthColor(wl + 5);
+          ctx.beginPath();
+          ctx.moveTo(px(c0.spectralX), py(c0.spectralY));
+          ctx.lineTo(px(c1.spectralX), py(c1.spectralY));
+          ctx.strokeStyle = c0.css;
+          ctx.stroke();
+        }
+
+        // Wavelength annotations
+        ctx.fillStyle = textMuted;
+        ctx.font = '8.5px ui-monospace, SFMono-Regular, Menlo, monospace';
+        const wlMarks = [
+          { wl: 460, dx: -16, dy: 3 },
+          { wl: 520, dx: -10, dy: -7 },
+          { wl: 580, dx: 13,  dy: -4 },
+          { wl: 650, dx: 4,   dy: 12 }
+        ];
+        for (const m of wlMarks) {
+          const c = evaluateWavelengthColor(m.wl);
+          ctx.textAlign = 'center';
+          ctx.fillText(String(m.wl), px(c.spectralX) + m.dx, py(c.spectralY) + m.dy);
+        }
+
+        // Draw Display P3 & sRGB triangles (active one solid, inactive dashed)
+        function drawTri(tri, active) {
+          ctx.beginPath();
+          ctx.moveTo(px(tri[0][0]), py(tri[0][1]));
+          ctx.lineTo(px(tri[1][0]), py(tri[1][1]));
+          ctx.lineTo(px(tri[2][0]), py(tri[2][1]));
+          ctx.closePath();
+          if (active) {
+            ctx.fillStyle = isDark ? 'rgba(59,130,246,0.11)' : 'rgba(37,99,235,0.08)';
+            ctx.fill();
+            ctx.strokeStyle = textCol;
+            ctx.lineWidth = 1.25;
+            ctx.setLineDash([]);
+          } else {
+            ctx.strokeStyle = textMuted;
+            ctx.lineWidth = 0.9;
+            ctx.setLineDash([3, 3]);
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        drawTri(P3_TRI, SUPPORTS_P3);
+        drawTri(SRGB_TRI, !SUPPORTS_P3);
+
+        ctx.fillStyle = textMuted;
+        ctx.font = 'bold 8.5px -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(SUPPORTS_P3 ? 'P3' : 'sRGB', px(0.36), py(0.24));
+
+        // D65 white crosshair
+        const dx = px(D65_XY[0]);
+        const dy = py(D65_XY[1]);
+        ctx.strokeStyle = textMuted;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(dx - 3.5, dy);
+        ctx.lineTo(dx + 3.5, dy);
+        ctx.moveTo(dx, dy - 3.5);
+        ctx.lineTo(dx, dy + 3.5);
+        ctx.stroke();
+
+        // Active wavelength points & projection
+        const info = evaluateWavelengthColor(inspWl);
+        const sx = px(info.spectralX);
+        const sy = py(info.spectralY);
+        const ex = px(info.effX);
+        const ey = py(info.effY);
+        const mx = px(info.mappedX);
+        const my = py(info.mappedY);
+
+        // Line from Bezold-Brücke effective locus point -> mapped gamut ridge point
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(mx, my);
+        ctx.strokeStyle = accentCol;
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+
+        // Physical λ point
+        ctx.beginPath();
+        ctx.arc(sx, sy, 4.2, 0, TWO_PI);
+        ctx.fillStyle = '#ef4444';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+
+        // Bezold-Brücke λ_eff point
+        ctx.beginPath();
+        ctx.arc(ex, ey, 4.2, 0, TWO_PI);
+        ctx.fillStyle = '#f59e0b';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+
+        // Mapped display point
+        ctx.beginPath();
+        ctx.arc(mx, my, 4.5, 0, TWO_PI);
+        ctx.fillStyle = accentCol;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Update inspector readout
+        const delta = info.effWl - inspWl;
+        const deltaStr = Math.abs(delta) < 0.05 ? '0 nm' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)} nm`;
+        el.inspWl.textContent = `${inspWl} nm`;
+        el.inspSwatch.style.backgroundColor = info.css;
+        el.inspSpectralXY.textContent = `(${info.spectralX.toFixed(3)}, ${info.spectralY.toFixed(3)})`;
+        el.inspEffWl.textContent = `${info.effWl.toFixed(1)} nm (${deltaStr})`;
+        el.inspHue.textContent = `${info.hueDeg.toFixed(1)}°`;
+        el.inspMappedXY.textContent = `(${info.mappedX.toFixed(3)}, ${info.mappedY.toFixed(3)})`;
+        el.inspRGB.textContent = info.label;
+      }
+
+      function openModelModal() {
+        const defaultWl = state.phase === 'reveal' ? state.target : 532;
+        el.inspSlider.value = defaultWl;
+        el.modelModal.classList.add('open');
+        drawCIEDiagram(defaultWl);
+      }
+
+      function closeModelModal() {
+        el.modelModal.classList.remove('open');
+      }
+
+      // ============================================================
+      // 11. Events & Keyboard Controls
+      // ============================================================
+      el.nmSlider.addEventListener('input', () => {
+        const val = parseInt(el.nmSlider.value, 10);
+        el.nmInput.value = val;
+        updateLivePhysics(val);
+      });
+
+      el.nmInput.addEventListener('input', () => {
+        const val = parseInt(el.nmInput.value, 10);
+        if (!Number.isNaN(val) && val >= 380 && val <= 700) {
+          el.nmSlider.value = val;
+          updateLivePhysics(val);
+        }
+      });
+
+      el.nmInput.addEventListener('blur', () => {
+        let val = parseInt(el.nmInput.value, 10);
+        if (Number.isNaN(val)) val = parseInt(el.nmSlider.value, 10);
+        setGuessValue(val);
+      });
+
+      el.submitBtn.addEventListener('click', submitGuess);
+      el.nextBtn.addEventListener('click', advanceRound);
+      el.restartBtn.addEventListener('click', () => {
+        state.round = 1;
+        state.challengeRounds = [];
+        startRound();
+      });
+
+      el.modeEndless.addEventListener('click', () => switchMode('endless'));
+      el.modeChallenge.addEventListener('click', () => switchMode('challenge'));
+
+      el.themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark-room');
+        saveStorage();
+        drawChart();
+        if (el.modelModal.classList.contains('open')) {
+          drawCIEDiagram(parseInt(el.inspSlider.value, 10));
+        }
+      });
+
+      el.modelBtn.addEventListener('click', openModelModal);
+      el.footerModelBtn.addEventListener('click', openModelModal);
+      el.closeModalBtn.addEventListener('click', closeModelModal);
+      el.modelModal.addEventListener('click', (e) => {
+        if (e.target === el.modelModal) closeModelModal();
+      });
+      el.inspSlider.addEventListener('input', () => {
+        drawCIEDiagram(parseInt(el.inspSlider.value, 10));
+      });
+
+      el.resetStatsBtn.addEventListener('click', () => {
+        if (state.history.length === 0) return;
+        state.history = [];
+        state.streak = 0;
+        state.bestStreak = 0;
+        saveStorage();
+        renderStats();
+        drawChart();
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (el.modelModal.classList.contains('open')) {
+          if (e.key === 'Escape') closeModelModal();
+          return;
+        }
+
+        const activeTag = document.activeElement?.tagName;
+        const inNumberInput = document.activeElement === el.nmInput;
+
+        if (e.key === 'Enter') {
+          if (activeTag === 'BUTTON') return;
+          e.preventDefault();
+          if (state.phase === 'guess') submitGuess();
+          else if (state.phase === 'reveal') advanceRound();
+          else if (state.phase === 'summary') {
+            state.round = 1;
+            state.challengeRounds = [];
+            startRound();
+          }
+          return;
+        }
+
+        if (state.phase === 'guess' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+          if (inNumberInput && !e.shiftKey) return;
+          e.preventDefault();
+          const step = e.shiftKey ? 10 : 1;
+          const current = parseInt(el.nmSlider.value, 10);
+          setGuessValue(current + (e.key === 'ArrowRight' ? step : -step));
+        }
+      });
+
+      window.addEventListener('resize', drawChart);
+
+      // ============================================================
+      // 12. Initialize
+      // ============================================================
+      el.footerGamut.textContent = GAMUT_NAME;
+      el.gamutPill.textContent = `Active gamut: ${GAMUT_NAME}`;
+      loadStorage();
+      buildSpectrumGradient();
+      renderStats();
+      startRound();
+      requestAnimationFrame(drawChart);
+    })();
+  </script>
+</body>
+</html>
