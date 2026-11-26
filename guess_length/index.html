@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guess the Length</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #151a23;
+      --surface-2: #1c222e;
+      --border: #283142;
+      --text: #eef2f8;
+      --muted: #8b97ad;
+      --accent: #4f86f7;
+      --accent-hover: #6495ff;
+      --green: #34d399;
+      --amber: #fbbf24;
+      --red: #f87171;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      display: flex;
+      justify-content: center;
+      padding: 20px 14px 36px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(1.45rem, 4vw, 1.85rem);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .segmented {
+      display: inline-flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .segmented button,
+    .pill-btn {
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      border-radius: 7px;
+      padding: 7px 12px;
+      font: 500 0.86rem var(--sans);
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .segmented button.active {
+      background: var(--surface-2);
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .pill-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+    }
+
+    .pill-btn:hover { border-color: #3d4b63; }
+    .pill-btn.active {
+      border-color: var(--accent);
+      background: rgba(79, 134, 247, 0.14);
+    }
+
+    .pill-btn.danger {
+      color: var(--red);
+      border-color: rgba(248, 113, 113, 0.35);
+    }
+    .pill-btn.danger:hover {
+      border-color: var(--red);
+      background: rgba(248, 113, 113, 0.1);
+    }
+
+    .cal-status {
+      margin-left: auto;
+      font: 0.78rem var(--mono);
+      color: var(--muted);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .hidden { display: none !important; }
+
+    /* Shared Panel */
+    .panel {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .panel-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 1.15rem;
+    }
+
+    .desc {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    /* Calibration View */
+    .cal-stage {
+      background: #0b0f16;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      min-height: 220px;
+      padding: 20px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      overflow-x: auto;
+    }
+
+    .credit-card {
+      background: linear-gradient(135deg, #2b4c8c 0%, #1d2b4f 55%, #162038 100%);
+      border: 2px solid #7ca8ff;
+      border-radius: 12px;
+      position: relative;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 14px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .card-chip {
+      width: 34px;
+      height: 25px;
+      border-radius: 5px;
+      background: linear-gradient(135deg, #f3d27a, #c79a3b);
+      opacity: 0.9;
+    }
+
+    .card-dims {
+      font: 600 0.78rem var(--mono);
+      color: rgba(255, 255, 255, 0.88);
+      text-align: center;
+    }
+
+    .card-note {
+      font-size: 0.8rem;
+      color: var(--amber);
+      text-align: center;
+      display: none;
+    }
+
+    .card-note.show { display: block; }
+
+    .cal-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .cal-subrow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .step-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      font: 600 1.1rem var(--mono);
+      cursor: pointer;
+      flex-shrink: 0;
+      touch-action: manipulation;
+    }
+
+    .step-btn:hover { border-color: var(--accent); }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: #283245;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid #dbe8ff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid #dbe8ff;
+    }
+
+    .ruler-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .ruler-input-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .error-text {
+      color: var(--red);
+      font-size: 0.84rem;
+      text-align: center;
+      min-height: 1.1em;
+    }
+
+    .num-input {
+      width: 112px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--text);
+      font: 700 1.35rem var(--mono);
+      text-align: center;
+      outline: none;
+    }
+
+    .num-input:focus { border-color: var(--accent); }
+
+    .primary-btn {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 18px;
+      background: var(--accent);
+      color: #fff;
+      font: 700 1rem var(--sans);
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: background 0.15s, transform 0.05s;
+    }
+
+    .primary-btn:hover { background: var(--accent-hover); }
+    .primary-btn:active { transform: scale(0.99); }
+    .primary-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Game View */
+    .stage-wrap {
+      position: relative;
+      background: #0b0f16;
+      height: clamp(270px, 44vh, 410px);
+      width: 100%;
+      border-bottom: 1px solid var(--border);
+      user-select: none;
+    }
+
+    .round-badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(21, 26, 35, 0.88);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font: 600 0.82rem var(--sans);
+      padding: 6px 12px;
+      border-radius: 999px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .score-badge {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: rgba(21, 26, 35, 0.88);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font: 600 0.82rem var(--mono);
+      padding: 6px 12px;
+      border-radius: 999px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    #stageSvg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .controls-panel {
+      padding: 18px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .input-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .guess-group {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .unit-label {
+      color: var(--muted);
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .secondary-readout {
+      font: 0.84rem var(--mono);
+      color: var(--muted);
+    }
+
+    .slider-ticks {
+      display: flex;
+      justify-content: space-between;
+      font: 0.76rem var(--mono);
+      color: var(--muted);
+      margin-top: -8px;
+    }
+
+    .result-strip {
+      display: none;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .result-strip.show { display: flex; }
+
+    .result-main {
+      font-size: 0.94rem;
+      line-height: 1.4;
+    }
+
+    .result-main strong { font-family: var(--mono); }
+
+    .result-pts {
+      font: 700 1.05rem var(--mono);
+      color: var(--green);
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* Summary View */
+    .summary-panel {
+      padding: 28px 20px 24px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .summary-kicker {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .summary-score {
+      font: 700 clamp(2.1rem, 8vw, 3.1rem) var(--mono);
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      margin: -6px 0;
+    }
+
+    .summary-rank {
+      color: var(--muted);
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .stats-grid.four {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .stat-box {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 10px;
+      text-align: center;
+    }
+
+    .stat-val {
+      font: 700 1.1rem var(--mono);
+      color: var(--text);
+    }
+
+    .stat-sub {
+      font: 0.72rem var(--mono);
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .stat-lbl {
+      font-size: 0.76rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .history-list {
+      text-align: left;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+      font: 0.82rem var(--mono);
+    }
+
+    .history-row {
+      display: grid;
+      grid-template-columns: 36px 1fr 1fr 72px;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--muted);
+    }
+
+    .history-row span:last-child {
+      text-align: right;
+      color: var(--text);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Statistics Dashboard */
+    .section-title {
+      margin: 0 0 8px;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .breakdown-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .breakdown-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .breakdown-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.84rem;
+    }
+
+    .breakdown-meta {
+      font: 0.76rem var(--mono);
+      color: var(--muted);
+    }
+
+    .bar-track {
+      height: 6px;
+      border-radius: 999px;
+      background: #273042;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--accent);
+      transition: width 0.25s ease;
+    }
+
+    .chart-box {
+      background: #0b0f16;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 12px 8px;
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    #trendSvg {
+      width: 100%;
+      height: 110px;
+      display: block;
+    }
+
+    .empty-stats {
+      text-align: center;
+      padding: 28px 12px;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .runs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font: 0.8rem var(--mono);
+    }
+
+    .run-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .run-row strong { color: var(--text); }
+
+    .stats-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-top: 6px;
+      border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 560px) {
+      .cal-status { width: 100%; margin-left: 0; }
+      .stats-grid, .stats-grid.four { grid-template-columns: repeat(2, 1fr); }
+      .breakdown-grid { grid-template-columns: 1fr; }
+      .controls-panel, .panel { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>📏 Guess the Length</h1>
+      <p>Estimate the real physical length of segments on your screen (cm)</p>
+    </header>
+
+    <div class="toolbar">
+      <div class="segmented" role="group" aria-label="Game Mode">
+        <button id="modeEndless" type="button">Endless</button>
+        <button id="mode10" type="button" class="active">10 Rounds</button>
+      </div>
+      <button id="statsBtn" class="pill-btn" type="button">📊 Stats</button>
+      <button id="recalBtn" class="pill-btn" type="button">⚙️ Calibrate</button>
+      <span id="calStatus" class="cal-status">Not calibrated</span>
+    </div>
+
+    <!-- CALIBRATION CARD -->
+    <section id="calView" class="card">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Screen Calibration</h2>
+          <div class="segmented" role="group" aria-label="Calibration Method">
+            <button id="tabCard" type="button" class="active">Credit Card</button>
+            <button id="tabRuler" type="button">Manual Ruler</button>
+          </div>
+        </div>
+
+        <!-- Option 1: Credit Card -->
+        <div id="cardCalMode" class="cal-controls">
+          <p class="desc">
+            Hold any standard credit, debit, or ID card (<strong>8.56 × 5.40 cm</strong>) directly against the screen and adjust the slider until the edges match. Browser zoom adapts automatically afterward.
+          </p>
+
+          <div id="cardStage" class="cal-stage">
+            <div id="creditCardEl" class="credit-card">
+              <div class="card-chip"></div>
+              <div id="cardDimsLabel" class="card-dims">8.56 × 5.40 cm</div>
+              <div style="font: 0.72rem var(--mono); opacity: 0.6;">ISO/IEC 7810 ID-1</div>
+            </div>
+            <div id="cardOverflowNote" class="card-note">
+              Card is wider than this box—tap <strong>Rotate 90°</strong> for portrait screens.
+            </div>
+          </div>
+
+          <div class="cal-subrow">
+            <button id="rotateCardBtn" class="pill-btn" type="button">↻ Rotate 90°</button>
+            <span id="cardScaleReadout" class="secondary-readout">37.8 px/cm</span>
+          </div>
+
+          <div class="slider-row">
+            <button id="cardMinusBtn" class="step-btn" type="button" aria-label="Decrease size">−</button>
+            <input id="cardSlider" type="range" min="12" max="120" step="0.1" value="37.8" />
+            <button id="cardPlusBtn" class="step-btn" type="button" aria-label="Increase size">+</button>
+          </div>
+
+          <button id="saveCardCalBtn" class="primary-btn" type="button">Confirm Calibration & Start</button>
+        </div>
+
+        <!-- Option 2: Manual Ruler -->
+        <div id="rulerCalMode" class="cal-controls hidden">
+          <p class="desc">
+            Measure the blue line below from end-cap to end-cap using a physical ruler, then enter its exact length. Browser zoom adapts automatically afterward.
+          </p>
+
+          <div id="rulerStage" class="cal-stage">
+            <div class="ruler-bar-wrap">
+              <svg id="rulerSvg" height="72" aria-label="Calibration line"></svg>
+              <span id="rulerPxLabel" class="secondary-readout"></span>
+            </div>
+          </div>
+
+          <div class="ruler-input-row">
+            <input id="rulerInput" class="num-input" type="number" inputmode="decimal" step="0.1" min="0.5" max="100" placeholder="0.0" />
+            <div class="segmented" role="group" aria-label="Ruler Unit">
+              <button id="unitCmBtn" type="button" class="active">cm</button>
+              <button id="unitInBtn" type="button">in</button>
+            </div>
+          </div>
+          <div id="rulerError" class="error-text"></div>
+
+          <button id="saveRulerCalBtn" class="primary-btn" type="button">Confirm Calibration & Start</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- GAME CARD -->
+    <section id="gameView" class="card hidden">
+      <div class="stage-wrap">
+        <div id="roundBadge" class="round-badge">Round 1 / 10</div>
+        <div id="scoreBadge" class="score-badge">0 pts</div>
+        <svg id="stageSvg"></svg>
+      </div>
+
+      <div class="controls-panel">
+        <div class="input-meta-row">
+          <div class="guess-group">
+            <input id="guessInput" class="num-input" type="number" inputmode="decimal" step="0.1" min="0.5" max="20" value="5.0" />
+            <span class="unit-label">cm</span>
+          </div>
+          <div id="secondaryReadout" class="secondary-readout">50 mm · 1.97 in</div>
+        </div>
+
+        <input id="guessSlider" type="range" min="0.5" max="15" step="0.1" value="5.0" />
+        <div id="sliderTicks" class="slider-ticks"></div>
+
+        <div id="resultStrip" class="result-strip">
+          <div>
+            <div id="resultMain" class="result-main"></div>
+            <div class="legend">
+              <span><i class="dot" style="background: var(--green)"></i>Actual</span>
+              <span><i class="dot" style="background: var(--accent)"></i>Your guess</span>
+            </div>
+          </div>
+          <div id="resultPts" class="result-pts">+0</div>
+        </div>
+
+        <button id="actionBtn" class="primary-btn" type="button">Submit Guess</button>
+      </div>
+    </section>
+
+    <!-- SUMMARY CARD -->
+    <section id="summaryView" class="card hidden">
+      <div class="summary-panel">
+        <div class="summary-kicker">10-Round Challenge Complete</div>
+        <div id="finalScore" class="summary-score">0 / 10,000</div>
+        <p id="finalRank" class="summary-rank"></p>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div id="statMeanErr" class="stat-val">0.00 cm</div>
+            <div class="stat-lbl">Mean Error</div>
+          </div>
+          <div class="stat-box">
+            <div id="statClosest" class="stat-val">±0.0 cm</div>
+            <div class="stat-lbl">Closest Guess</div>
+          </div>
+          <div class="stat-box">
+            <div id="statBias" class="stat-val">+0.00 cm</div>
+            <div class="stat-lbl">Avg Bias</div>
+          </div>
+        </div>
+
+        <div id="historyList" class="history-list"></div>
+
+        <div class="btn-row">
+          <button id="playAgainBtn" class="primary-btn" type="button">Play Again</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATISTICS CARD -->
+    <section id="statsView" class="card hidden">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Your Accuracy Statistics</h2>
+          <button id="closeStatsBtn" class="pill-btn" type="button">← Back to Game</button>
+        </div>
+
+        <div id="statsEmpty" class="empty-stats hidden">
+          No guesses recorded yet. Play a few rounds to unlock your accuracy breakdown and trend chart!
+        </div>
+
+        <div id="statsContent" class="cal-controls">
+          <div class="stats-grid four">
+            <div class="stat-box">
+              <div id="stTotal" class="stat-val">0</div>
+              <div id="stGames" class="stat-sub">0 runs</div>
+              <div class="stat-lbl">Guesses</div>
+            </div>
+            <div class="stat-box">
+              <div id="stBest" class="stat-val">—</div>
+              <div id="stAvgRun" class="stat-sub">Avg: —</div>
+              <div class="stat-lbl">Best 10-Rd</div>
+            </div>
+            <div class="stat-box">
+              <div id="stMeanErr" class="stat-val">0.00 cm</div>
+              <div id="stPctErr" class="stat-sub">0.0% rel</div>
+              <div class="stat-lbl">Mean Error</div>
+            </div>
+            <div class="stat-box">
+              <div id="stBias" class="stat-val">+0.00 cm</div>
+              <div id="stBiasNote" class="stat-sub">balanced</div>
+              <div class="stat-lbl">Avg Bias</div>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div id="stExact" class="stat-val">0</div>
+              <div class="stat-lbl">Exact Hits (±0.0)</div>
+            </div>
+            <div class="stat-box">
+              <div id="stWithin" class="stat-val">0%</div>
+              <div class="stat-lbl">Within ±0.5 cm</div>
+            </div>
+            <div class="stat-box">
+              <div id="stStreak" class="stat-val">0</div>
+              <div id="stCurStreak" class="stat-sub">Current: 0</div>
+              <div class="stat-lbl">Best ±0.5 Streak</div>
+            </div>
+          </div>
+
+          <div class="chart-box">
+            <div class="chart-header">
+              <span>Recent Guess Accuracy (last 25 scores)</span>
+              <span id="trendAvgLabel" class="secondary-readout"></span>
+            </div>
+            <svg id="trendSvg" viewBox="0 0 560 110" preserveAspectRatio="none"></svg>
+          </div>
+
+          <div class="breakdown-grid">
+            <div class="breakdown-card">
+              <h3 class="section-title">By Orientation</h3>
+              <div id="orientBreakdown"></div>
+            </div>
+            <div class="breakdown-card">
+              <h3 class="section-title">By Segment Length</h3>
+              <div id="lengthBreakdown"></div>
+            </div>
+          </div>
+
+          <div id="recentRunsWrap" class="hidden">
+            <h3 class="section-title">Recent 10-Round Challenges</h3>
+            <div id="recentRunsList" class="runs-list"></div>
+          </div>
+        </div>
+
+        <div class="stats-footer">
+          <span class="secondary-readout">Saved locally in your browser</span>
+          <button id="resetStatsBtn" class="pill-btn danger" type="button">Reset Stats</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      const CAL_KEY = 'guess_the_length_cal_v2';
+      const LEGACY_CAL_KEY = 'guess_the_length_cal_v1';
+      const STATS_KEY = 'guess_the_length_stats_v1';
+      const CARD_LONG_CM = 8.56;
+      const CARD_SHORT_CM = 5.40;
+      const TOTAL_ROUNDS = 10;
+
+      const state = {
+        devicePxPerCm: null, // Hardware pixels per cm (zoom-invariant)
+        mode: '10',          // '10' | 'endless'
+        calTab: 'card',      // 'card' | 'ruler'
+        cardVertical: window.innerWidth < 540,
+        tempCssPxPerCm: 37.8,
+        rulerUnit: 'cm',
+        rulerBarPx: 260,
+
+        round: 1,
+        score: 0,
+        history: [],
+        phase: 'cal',        // 'cal' | 'guess' | 'reveal' | 'summary'
+        statsOpen: false,
+        resetConfirmTimer: null,
+
+        currentTarget: null, // { lengthCm, angleDeg, orient, cxFrac, cyFrac }
+        lastGuessCm: null,
+        minCm: 0.5,
+        maxCm: 12.0
+      };
+
+      function createEmptyStats() {
+        return {
+          totalGuesses: 0,
+          sumAbsErr: 0,
+          sumSignedErr: 0,
+          sumPctErr: 0,
+          sumPts: 0,
+          exactHits: 0,
+          withinHalfCm: 0,
+          currentStreak: 0,
+          bestStreak: 0,
+          byOrient: {
+            horizontal: { n: 0, sumAbs: 0, sumBias: 0 },
+            vertical:   { n: 0, sumAbs: 0, sumBias: 0 },
+            diagonal:   { n: 0, sumAbs: 0, sumBias: 0 }
+          },
+          byLength: {
+            short:  { n: 0, sumAbs: 0, sumBias: 0 }, // < 3.5 cm
+            medium: { n: 0, sumAbs: 0, sumBias: 0 }, // 3.5 - 7.5 cm
+            long:   { n: 0, sumAbs: 0, sumBias: 0 }  // > 7.5 cm
+          },
+          recentGuesses: [], // up to 40: { pts, absErr, actualCm, guessCm }
+          runs10: []         // up to 15: { score, meanErr, bias, date }
+        };
+      }
+
+      let stats = createEmptyStats();
+
+      // Elements
+      const el = {
+        modeEndless: document.getElementById('modeEndless'),
+        mode10: document.getElementById('mode10'),
+        statsBtn: document.getElementById('statsBtn'),
+        recalBtn: document.getElementById('recalBtn'),
+        calStatus: document.getElementById('calStatus'),
+
+        calView: document.getElementById('calView'),
+        tabCard: document.getElementById('tabCard'),
+        tabRuler: document.getElementById('tabRuler'),
+        cardCalMode: document.getElementById('cardCalMode'),
+        rulerCalMode: document.getElementById('rulerCalMode'),
+
+        cardStage: document.getElementById('cardStage'),
+        creditCardEl: document.getElementById('creditCardEl'),
+        cardDimsLabel: document.getElementById('cardDimsLabel'),
+        cardOverflowNote: document.getElementById('cardOverflowNote'),
+        rotateCardBtn: document.getElementById('rotateCardBtn'),
+        cardScaleReadout: document.getElementById('cardScaleReadout'),
+        cardSlider: document.getElementById('cardSlider'),
+        cardMinusBtn: document.getElementById('cardMinusBtn'),
+        cardPlusBtn: document.getElementById('cardPlusBtn'),
+        saveCardCalBtn: document.getElementById('saveCardCalBtn'),
+
+        rulerStage: document.getElementById('rulerStage'),
+        rulerSvg: document.getElementById('rulerSvg'),
+        rulerPxLabel: document.getElementById('rulerPxLabel'),
+        rulerInput: document.getElementById('rulerInput'),
+        unitCmBtn: document.getElementById('unitCmBtn'),
+        unitInBtn: document.getElementById('unitInBtn'),
+        rulerError: document.getElementById('rulerError'),
+        saveRulerCalBtn: document.getElementById('saveRulerCalBtn'),
+
+        gameView: document.getElementById('gameView'),
+        roundBadge: document.getElementById('roundBadge'),
+        scoreBadge: document.getElementById('scoreBadge'),
+        stageSvg: document.getElementById('stageSvg'),
+        guessInput: document.getElementById('guessInput'),
+        guessSlider: document.getElementById('guessSlider'),
+        sliderTicks: document.getElementById('sliderTicks'),
+        secondaryReadout: document.getElementById('secondaryReadout'),
+        resultStrip: document.getElementById('resultStrip'),
+        resultMain: document.getElementById('resultMain'),
+        resultPts: document.getElementById('resultPts'),
+        actionBtn: document.getElementById('actionBtn'),
+
+        summaryView: document.getElementById('summaryView'),
+        finalScore: document.getElementById('finalScore'),
+        finalRank: document.getElementById('finalRank'),
+        statMeanErr: document.getElementById('statMeanErr'),
+        statClosest: document.getElementById('statClosest'),
+        statBias: document.getElementById('statBias'),
+        historyList: document.getElementById('historyList'),
+        playAgainBtn: document.getElementById('playAgainBtn'),
+
+        statsView: document.getElementById('statsView'),
+        closeStatsBtn: document.getElementById('closeStatsBtn'),
+        statsEmpty: document.getElementById('statsEmpty'),
+        statsContent: document.getElementById('statsContent'),
+        stTotal: document.getElementById('stTotal'),
+        stGames: document.getElementById('stGames'),
+        stBest: document.getElementById('stBest'),
+        stAvgRun: document.getElementById('stAvgRun'),
+        stMeanErr: document.getElementById('stMeanErr'),
+        stPctErr: document.getElementById('stPctErr'),
+        stBias: document.getElementById('stBias'),
+        stBiasNote: document.getElementById('stBiasNote'),
+        stExact: document.getElementById('stExact'),
+        stWithin: document.getElementById('stWithin'),
+        stStreak: document.getElementById('stStreak'),
+        stCurStreak: document.getElementById('stCurStreak'),
+        trendAvgLabel: document.getElementById('trendAvgLabel'),
+        trendSvg: document.getElementById('trendSvg'),
+        orientBreakdown: document.getElementById('orientBreakdown'),
+        lengthBreakdown: document.getElementById('lengthBreakdown'),
+        recentRunsWrap: document.getElementById('recentRunsWrap'),
+        recentRunsList: document.getElementById('recentRunsList'),
+        resetStatsBtn: document.getElementById('resetStatsBtn')
+      };
+
+      // --- ZOOM-INVARIANT SCALE HELPERS ---
+      function getEffectiveScale() {
+        const dpr = window.devicePixelRatio || 1;
+        const vvScale = window.visualViewport ? window.visualViewport.scale : 1;
+        return dpr * vvScale;
+      }
+
+      function getCssPxPerCm() {
+        return state.devicePxPerCm ? state.devicePxPerCm / getEffectiveScale() : null;
+      }
+
+      function loadCalibration() {
+        try {
+          const raw = localStorage.getItem(CAL_KEY);
+          if (raw) {
+            const data = JSON.parse(raw);
+            if (typeof data.devicePxPerCm === 'number' && data.devicePxPerCm >= 8 && data.devicePxPerCm <= 600) {
+              state.devicePxPerCm = data.devicePxPerCm;
+              state.tempCssPxPerCm = getCssPxPerCm();
+              return true;
+            }
+          }
+          // Migrate legacy v1 calibration if present
+          const legacyRaw = localStorage.getItem(LEGACY_CAL_KEY);
+          if (legacyRaw) {
+            const legacy = JSON.parse(legacyRaw);
+            if (typeof legacy.pxPerCm === 'number' && legacy.pxPerCm >= 8) {
+              state.devicePxPerCm = legacy.pxPerCm * (legacy.dpr || 1);
+              state.tempCssPxPerCm = getCssPxPerCm();
+              localStorage.setItem(CAL_KEY, JSON.stringify({ devicePxPerCm: Number(state.devicePxPerCm.toFixed(3)) }));
+              return true;
+            }
+          }
+        } catch (_) {}
+        return false;
+      }
+
+      function saveCalibration(cssPxPerCm) {
+        state.devicePxPerCm = cssPxPerCm * getEffectiveScale();
+        state.tempCssPxPerCm = cssPxPerCm;
+        try {
+          localStorage.setItem(CAL_KEY, JSON.stringify({
+            devicePxPerCm: Number(state.devicePxPerCm.toFixed(3))
+          }));
+        } catch (_) {}
+        updateCalStatus();
+      }
+
+      function updateCalStatus() {
+        const cssPpc = getCssPxPerCm();
+        if (cssPpc) {
+          el.calStatus.textContent = `${cssPpc.toFixed(1)} px/cm (zoom-locked)`;
+        } else {
+          el.calStatus.textContent = 'Not calibrated';
+        }
+      }
+
+      // --- STATS PERSISTENCE ---
+      function loadStats() {
+        try {
+          const raw = localStorage.getItem(STATS_KEY);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          const base = createEmptyStats();
+          stats = {
+            ...base,
+            ...parsed,
+            byOrient: { ...base.byOrient, ...(parsed.byOrient || {}) },
+            byLength: { ...base.byLength, ...(parsed.byLength || {}) },
+            recentGuesses: Array.isArray(parsed.recentGuesses) ? parsed.recentGuesses : [],
+            runs10: Array.isArray(parsed.runs10) ? parsed.runs10 : []
+          };
+        } catch (_) {
+          stats = createEmptyStats();
+        }
+      }
+
+      function saveStats() {
+        try {
+          localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+        } catch (_) {}
+      }
+
+      function recordGuessStat({ actualCm, guessCm, diff, absErr, pts, orient }) {
+        stats.totalGuesses += 1;
+        stats.sumAbsErr += absErr;
+        stats.sumSignedErr += diff;
+        stats.sumPctErr += (absErr / Math.max(0.1, actualCm)) * 100;
+        stats.sumPts += pts;
+
+        if (absErr < 0.001) stats.exactHits += 1;
+        if (absErr <= 0.501) {
+          stats.withinHalfCm += 1;
+          stats.currentStreak += 1;
+          if (stats.currentStreak > stats.bestStreak) stats.bestStreak = stats.currentStreak;
+        } else {
+          stats.currentStreak = 0;
+        }
+
+        const oBucket = stats.byOrient[orient] || stats.byOrient.diagonal;
+        oBucket.n += 1;
+        oBucket.sumAbs += absErr;
+        oBucket.sumBias += diff;
+
+        const lenKey = actualCm < 3.5 ? 'short' : actualCm <= 7.5 ? 'medium' : 'long';
+        stats.byLength[lenKey].n += 1;
+        stats.byLength[lenKey].sumAbs += absErr;
+        stats.byLength[lenKey].sumBias += diff;
+
+        stats.recentGuesses.push({ pts, absErr, actualCm, guessCm });
+        if (stats.recentGuesses.length > 40) stats.recentGuesses.shift();
+
+        saveStats();
+      }
+
+      function recordRun10(score, meanErr, bias) {
+        stats.runs10.unshift({
+          score,
+          meanErr: Number(meanErr.toFixed(2)),
+          bias: Number(bias.toFixed(2)),
+          date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        });
+        if (stats.runs10.length > 15) stats.runs10.pop();
+        saveStats();
+      }
+
+      // --- VIEW ROUTING ---
+      function syncViews() {
+        const active = state.statsOpen
+          ? 'stats'
+          : state.phase === 'cal'
+            ? 'cal'
+            : state.phase === 'summary'
+              ? 'summary'
+              : 'game';
+
+        el.calView.classList.toggle('hidden', active !== 'cal');
+        el.gameView.classList.toggle('hidden', active !== 'game');
+        el.summaryView.classList.toggle('hidden', active !== 'summary');
+        el.statsView.classList.toggle('hidden', active !== 'stats');
+        el.statsBtn.classList.toggle('active', active === 'stats');
+        el.recalBtn.classList.toggle('active', active === 'cal');
+      }
+
+      function openStats() {
+        state.statsOpen = true;
+        resetConfirmCancel();
+        renderStatsDashboard();
+        syncViews();
+      }
+
+      function closeStats() {
+        state.statsOpen = false;
+        resetConfirmCancel();
+        syncViews();
+        if (state.phase === 'guess' || state.phase === 'reveal') drawStage();
+        else if (state.phase === 'cal') {
+          renderCardCal();
+          renderRulerCal();
+        }
+      }
+
+      function renderBreakdownRows(container, rows) {
+        const maxErr = Math.max(1.5, ...rows.map(r => (r.bucket.n ? r.bucket.sumAbs / r.bucket.n : 0)));
+        container.innerHTML = rows.map(({ label, bucket }) => {
+          if (!bucket.n) {
+            return `
+              <div class="breakdown-row">
+                <div class="breakdown-top">
+                  <span>${label}</span>
+                  <span class="breakdown-meta">No data</span>
+                </div>
+                <div class="bar-track"><div class="bar-fill" style="width: 0%"></div></div>
+              </div>
+            `;
+          }
+          const avgErr = bucket.sumAbs / bucket.n;
+          const avgBias = bucket.sumBias / bucket.n;
+          // Higher bar = better accuracy
+          const accPct = Math.max(8, Math.min(100, Math.round((1 - avgErr / (maxErr * 1.15)) * 100)));
+          const color = avgErr <= 0.45 ? 'var(--green)' : avgErr <= 0.9 ? 'var(--accent)' : 'var(--amber)';
+          return `
+            <div class="breakdown-row">
+              <div class="breakdown-top">
+                <span>${label} <small style="color:var(--muted)">(${bucket.n})</small></span>
+                <span class="breakdown-meta">${avgErr.toFixed(2)} cm · ${avgBias >= 0 ? '+' : ''}${avgBias.toFixed(2)}</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width:${accPct}%; background:${color}"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function renderTrendChart() {
+        const recent = stats.recentGuesses.slice(-25);
+        const svgW = 560;
+        const svgH = 110;
+        const padX = 10;
+        const padY = 12;
+        const plotW = svgW - padX * 2;
+        const plotH = svgH - padY * 2;
+
+        if (!recent.length) {
+          el.trendSvg.innerHTML = '';
+          el.trendAvgLabel.textContent = '';
+          return;
+        }
+
+        const avgPts = Math.round(recent.reduce((s, g) => s + g.pts, 0) / recent.length);
+        el.trendAvgLabel.textContent = `Avg: ${avgPts} / 1000`;
+
+        const barGap = 4;
+        const barW = Math.max(6, (plotW - barGap * (recent.length - 1)) / recent.length);
+
+        let svg = `
+          <line x1="${padX}" y1="${padY}" x2="${svgW - padX}" y2="${padY}" stroke="#1e2736" stroke-dasharray="3 3" />
+          <line x1="${padX}" y1="${padY + plotH / 2}" x2="${svgW - padX}" y2="${padY + plotH / 2}" stroke="#1e2736" stroke-dasharray="3 3" />
+          <line x1="${padX}" y1="${svgH - padY}" x2="${svgW - padX}" y2="${svgH - padY}" stroke="#283142" />
+        `;
+
+        const points = [];
+        recent.forEach((g, i) => {
+          const frac = Math.max(0, Math.min(1, g.pts / 1000));
+          const h = Math.max(3, frac * plotH);
+          const x = padX + i * (barW + barGap);
+          const y = svgH - padY - h;
+          const color = g.pts >= 850 ? '#34d399' : g.pts >= 600 ? '#4f86f7' : '#f87171';
+          svg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${color}" opacity="0.82"><title>${g.pts} pts (Act ${g.actualCm.toFixed(1)} cm / Guess ${g.guessCm.toFixed(1)} cm)</title></rect>`;
+          points.push(`${(x + barW / 2).toFixed(1)},${y.toFixed(1)}`);
+        });
+
+        if (points.length > 1) {
+          svg += `<polyline points="${points.join(' ')}" fill="none" stroke="#eef2f8" stroke-width="1.6" opacity="0.55" />`;
+        }
+
+        el.trendSvg.innerHTML = svg;
+      }
+
+      function renderStatsDashboard() {
+        const hasData = stats.totalGuesses > 0;
+        el.statsEmpty.classList.toggle('hidden', hasData);
+        el.statsContent.classList.toggle('hidden', !hasData);
+        el.closeStatsBtn.textContent = state.phase === 'cal' ? '← Back to Calibration' : '← Back to Game';
+
+        if (!hasData) return;
+
+        const n = stats.totalGuesses;
+        const meanErr = stats.sumAbsErr / n;
+        const pctErr = stats.sumPctErr / n;
+        const avgBias = stats.sumSignedErr / n;
+
+        el.stTotal.textContent = n.toLocaleString();
+        el.stGames.textContent = `${stats.runs10.length} 10-rd ${stats.runs10.length === 1 ? 'run' : 'runs'}`;
+
+        if (stats.runs10.length) {
+          const best = Math.max(...stats.runs10.map(r => r.score));
+          const avgRun = Math.round(stats.runs10.reduce((s, r) => s + r.score, 0) / stats.runs10.length);
+          el.stBest.textContent = best.toLocaleString();
+          el.stAvgRun.textContent = `Avg: ${avgRun.toLocaleString()}`;
+        } else {
+          el.stBest.textContent = '—';
+          el.stAvgRun.textContent = 'Finish 10 rds';
+        }
+
+        el.stMeanErr.textContent = `${meanErr.toFixed(2)} cm`;
+        el.stPctErr.textContent = `${pctErr.toFixed(1)}% rel`;
+
+        el.stBias.textContent = `${avgBias >= 0 ? '+' : ''}${avgBias.toFixed(2)} cm`;
+        el.stBiasNote.textContent = Math.abs(avgBias) < 0.08
+          ? 'well balanced'
+          : avgBias > 0 ? 'overestimates' : 'underestimates';
+
+        el.stExact.textContent = stats.exactHits.toLocaleString();
+        el.stWithin.textContent = `${Math.round((stats.withinHalfCm / n) * 100)}%`;
+        el.stStreak.textContent = stats.bestStreak.toLocaleString();
+        el.stCurStreak.textContent = `Current: ${stats.currentStreak}`;
+
+        renderTrendChart();
+
+        renderBreakdownRows(el.orientBreakdown, [
+          { label: 'Horizontal', bucket: stats.byOrient.horizontal },
+          { label: 'Vertical',   bucket: stats.byOrient.vertical },
+          { label: 'Diagonal',   bucket: stats.byOrient.diagonal }
+        ]);
+
+        renderBreakdownRows(el.lengthBreakdown, [
+          { label: 'Short (< 3.5 cm)',     bucket: stats.byLength.short },
+          { label: 'Medium (3.5–7.5 cm)',  bucket: stats.byLength.medium },
+          { label: 'Long (> 7.5 cm)',      bucket: stats.byLength.long }
+        ]);
+
+        if (stats.runs10.length) {
+          el.recentRunsWrap.classList.remove('hidden');
+          el.recentRunsList.innerHTML = stats.runs10.slice(0, 6).map(r => `
+            <div class="run-row">
+              <span><strong>${r.score.toLocaleString()}</strong> / 10,000</span>
+              <span>Err ${r.meanErr.toFixed(2)} cm · Bias ${r.bias >= 0 ? '+' : ''}${r.bias.toFixed(2)}</span>
+              <span>${r.date}</span>
+            </div>
+          `).join('');
+        } else {
+          el.recentRunsWrap.classList.add('hidden');
+        }
+      }
+
+      function resetConfirmCancel() {
+        if (state.resetConfirmTimer) {
+          clearTimeout(state.resetConfirmTimer);
+          state.resetConfirmTimer = null;
+        }
+        el.resetStatsBtn.textContent = 'Reset Stats';
+        el.resetStatsBtn.dataset.armed = '0';
+      }
+
+      // --- CALIBRATION ---
+      function openCalibration() {
+        state.statsOpen = false;
+        state.phase = 'cal';
+        const liveCss = getCssPxPerCm();
+        if (liveCss) state.tempCssPxPerCm = liveCss;
+        syncViews();
+        el.cardSlider.value = Math.min(120, Math.max(12, state.tempCssPxPerCm)).toFixed(1);
+        renderCardCal();
+        renderRulerCal();
+      }
+
+      function setCalTab(tab) {
+        state.calTab = tab;
+        el.tabCard.classList.toggle('active', tab === 'card');
+        el.tabRuler.classList.toggle('active', tab === 'ruler');
+        el.cardCalMode.classList.toggle('hidden', tab !== 'card');
+        el.rulerCalMode.classList.toggle('hidden', tab !== 'ruler');
+        if (tab === 'card') renderCardCal();
+        else renderRulerCal();
+      }
+
+      function renderCardCal() {
+        const ppc = state.tempCssPxPerCm;
+        const wCm = state.cardVertical ? CARD_SHORT_CM : CARD_LONG_CM;
+        const hCm = state.cardVertical ? CARD_LONG_CM : CARD_SHORT_CM;
+        const wPx = wCm * ppc;
+        const hPx = hCm * ppc;
+
+        el.creditCardEl.style.width = `${wPx}px`;
+        el.creditCardEl.style.height = `${hPx}px`;
+        el.cardDimsLabel.textContent = `${wCm.toFixed(2)} × ${hCm.toFixed(2)} cm`;
+        el.cardScaleReadout.textContent = `${ppc.toFixed(1)} CSS px/cm`;
+
+        const stageInnerW = Math.max(240, el.cardStage.clientWidth - 28);
+        el.cardOverflowNote.classList.toggle('show', !state.cardVertical && wPx > stageInnerW);
+      }
+
+      function renderRulerCal() {
+        const stageW = el.rulerStage.clientWidth || 320;
+        const barPx = Math.round(Math.min(440, Math.max(160, stageW - 56)));
+        state.rulerBarPx = barPx;
+
+        const svgW = barPx + 24;
+        const x1 = 12;
+        const x2 = 12 + barPx;
+        const y = 36;
+
+        el.rulerSvg.setAttribute('width', svgW);
+        el.rulerSvg.setAttribute('viewBox', `0 0 ${svgW} 72`);
+        el.rulerSvg.innerHTML = `
+          <line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="#4f86f7" stroke-width="4" stroke-linecap="butt" />
+          <line x1="${x1}" y1="${y - 16}" x2="${x1}" y2="${y + 16}" stroke="#eef2f8" stroke-width="2.5" stroke-linecap="round" />
+          <line x1="${x2}" y1="${y - 16}" x2="${x2}" y2="${y + 16}" stroke="#eef2f8" stroke-width="2.5" stroke-linecap="round" />
+          <line x1="${(x1 + x2) / 2}" y1="${y - 7}" x2="${(x1 + x2) / 2}" y2="${y + 7}" stroke="#4f86f7" stroke-width="1.5" opacity="0.7" />
+        `;
+        el.rulerPxLabel.textContent = `Reference bar: ${barPx} CSS px`;
+        el.rulerError.textContent = '';
+      }
+
+      function handleSaveRulerCal() {
+        const raw = parseFloat(el.rulerInput.value);
+        if (!Number.isFinite(raw) || raw <= 0) {
+          el.rulerError.textContent = 'Enter the measured length of the blue line.';
+          return;
+        }
+        const cm = state.rulerUnit === 'in' ? raw * 2.54 : raw;
+        const cssPxPerCm = state.rulerBarPx / cm;
+        if (cssPxPerCm < 6 || cssPxPerCm > 200) {
+          el.rulerError.textContent = 'That measurement looks outside normal screen ranges. Double-check cm vs in.';
+          return;
+        }
+        el.rulerError.textContent = '';
+        saveCalibration(cssPxPerCm);
+        startNewGame();
+      }
+
+      // --- GAME LOGIC ---
+      function startNewGame() {
+        if (!state.devicePxPerCm) {
+          openCalibration();
+          return;
+        }
+        state.statsOpen = false;
+        state.round = 1;
+        state.score = 0;
+        state.history = [];
+        state.phase = 'guess';
+        syncViews();
+        setupRound();
+      }
+
+      function getStageGeometry() {
+        const rect = el.stageSvg.getBoundingClientRect();
+        const w = Math.max(240, rect.width);
+        const h = Math.max(220, rect.height);
+        const padX = 32;
+        const padTop = 58;
+        const padBottom = 32;
+        return {
+          w, h, padX, padTop, padBottom,
+          availW: Math.max(80, w - padX * 2),
+          availH: Math.max(80, h - padTop - padBottom)
+        };
+      }
+
+      function computeSliderBounds(geo) {
+        const cssPpc = getCssPxPerCm();
+        const maxDiagPx = Math.hypot(geo.availW, geo.availH) * 0.78;
+        const maxHorizPx = geo.availW * 0.84;
+        const safeMaxPx = Math.min(maxDiagPx, maxHorizPx);
+        const rawMaxCm = safeMaxPx / cssPpc;
+        const maxCm = Math.max(3.0, Math.min(18.0, Math.floor(rawMaxCm * 2) / 2));
+
+        state.minCm = 0.5;
+        state.maxCm = maxCm;
+
+        el.guessSlider.min = state.minCm.toFixed(1);
+        el.guessSlider.max = state.maxCm.toFixed(1);
+        el.guessInput.min = state.minCm.toFixed(1);
+        el.guessInput.max = state.maxCm.toFixed(1);
+
+        const ticks = [];
+        for (let i = 0; i < 5; i++) {
+          const v = state.minCm + (state.maxCm - state.minCm) * (i / 4);
+          ticks.push(`<span>${v.toFixed(1)} cm</span>`);
+        }
+        el.sliderTicks.innerHTML = ticks.join('');
+      }
+
+      function generateTarget(geo) {
+        const cssPpc = getCssPxPerCm();
+        const lengthCm = Number((state.minCm + Math.random() * (state.maxCm - state.minCm)).toFixed(1));
+        const lenPx = lengthCm * cssPpc;
+
+        const maxSin = Math.min(1, geo.availH / lenPx);
+        const maxDeg = Math.asin(maxSin) * (180 / Math.PI);
+
+        let angleDeg;
+        let orient;
+        const roll = Math.random();
+        if (roll < 0.30) {
+          angleDeg = 0;
+          orient = 'horizontal';
+        } else if (roll < 0.56 && lenPx <= geo.availH) {
+          angleDeg = 90;
+          orient = 'vertical';
+        } else {
+          const minCos = Math.min(1, geo.availW / lenPx);
+          const minDeg = lenPx > geo.availW ? Math.acos(minCos) * (180 / Math.PI) : 12;
+          const lo = Math.min(minDeg, maxDeg);
+          const hi = Math.max(minDeg, maxDeg);
+          const mag = lo + Math.random() * Math.max(0, hi - lo);
+          angleDeg = Math.random() < 0.5 ? mag : -mag;
+          orient = Math.abs(angleDeg) < 3 ? 'horizontal' : Math.abs(Math.abs(angleDeg) - 90) < 3 ? 'vertical' : 'diagonal';
+        }
+
+        return {
+          lengthCm,
+          angleDeg,
+          orient,
+          cxFrac: 0.15 + Math.random() * 0.70,
+          cyFrac: 0.15 + Math.random() * 0.70
+        };
+      }
+
+      function setupRound() {
+        state.phase = 'guess';
+        state.lastGuessCm = null;
+
+        const geo = getStageGeometry();
+        computeSliderBounds(geo);
+        state.currentTarget = generateTarget(geo);
+
+        const midGuess = Number(((state.minCm + state.maxCm) / 2).toFixed(1));
+        setGuessValue(midGuess);
+
+        el.guessInput.disabled = false;
+        el.guessSlider.disabled = false;
+        el.resultStrip.classList.remove('show');
+        el.actionBtn.textContent = 'Submit Guess';
+
+        updateHeaderBadges();
+        drawStage();
+      }
+
+      function updateHeaderBadges() {
+        el.roundBadge.textContent = state.mode === '10'
+          ? `Round ${state.round} / ${TOTAL_ROUNDS}`
+          : `Round ${state.round}`;
+        el.scoreBadge.textContent = `${state.score.toLocaleString()} pts`;
+      }
+
+      function setGuessValue(val) {
+        const clamped = Math.max(state.minCm, Math.min(state.maxCm, Number(val) || state.minCm));
+        const fixed = clamped.toFixed(1);
+        el.guessInput.value = fixed;
+        el.guessSlider.value = fixed;
+        const mm = Math.round(clamped * 10);
+        const inches = (clamped / 2.54).toFixed(2);
+        el.secondaryReadout.textContent = `${mm} mm · ${inches} in`;
+      }
+
+      function drawSegment(x1, y1, x2, y2, color, strokeWidth, capLen) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = (-dy / len) * capLen;
+        const ny = (dx / len) * capLen;
+
+        return `
+          <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="butt" />
+          <line x1="${x1 - nx}" y1="${y1 - ny}" x2="${x1 + nx}" y2="${y1 + ny}" stroke="${color}" stroke-width="2" stroke-linecap="round" />
+          <line x1="${x2 - nx}" y1="${y2 - ny}" x2="${x2 + nx}" y2="${y2 + ny}" stroke="${color}" stroke-width="2" stroke-linecap="round" />
+        `;
+      }
+
+      function drawStage() {
+        const cssPpc = getCssPxPerCm();
+        if (!state.currentTarget || !cssPpc) return;
+        const geo = getStageGeometry();
+        const { lengthCm, angleDeg, cxFrac, cyFrac } = state.currentTarget;
+
+        const lenPx = lengthCm * cssPpc;
+        const rad = (angleDeg * Math.PI) / 180;
+        const dx = lenPx * Math.cos(rad);
+        const dy = lenPx * Math.sin(rad);
+
+        const halfW = Math.abs(dx) / 2;
+        const halfH = Math.abs(dy) / 2;
+
+        const minCx = geo.padX + halfW;
+        const maxCx = geo.w - geo.padX - halfW;
+        const minCy = geo.padTop + halfH;
+        const maxCy = geo.h - geo.padBottom - halfH;
+
+        const cx = maxCx > minCx ? minCx + cxFrac * (maxCx - minCx) : geo.w / 2;
+        const cy = maxCy > minCy ? minCy + cyFrac * (maxCy - minCy) : (geo.padTop + geo.h - geo.padBottom) / 2;
+
+        const x1 = cx - dx / 2;
+        const y1 = cy - dy / 2;
+        const x2 = cx + dx / 2;
+        const y2 = cy + dy / 2;
+
+        el.stageSvg.setAttribute('viewBox', `0 0 ${geo.w} ${geo.h}`);
+
+        const isReveal = state.phase === 'reveal';
+        let markup = `
+          <defs>
+            <pattern id="bgGrid" width="28" height="28" patternUnits="userSpaceOnUse">
+              <circle cx="14" cy="14" r="1" fill="#1e2736" />
+            </pattern>
+          </defs>
+          <rect width="${geo.w}" height="${geo.h}" fill="url(#bgGrid)" />
+        `;
+
+        markup += drawSegment(x1, y1, x2, y2, isReveal ? '#34d399' : '#eef2f8', 4, 10);
+
+        if (isReveal && state.lastGuessCm !== null) {
+          const guessPx = state.lastGuessCm * cssPpc;
+          const gdx = guessPx * Math.cos(rad);
+          const gdy = guessPx * Math.sin(rad);
+
+          let nx = -Math.sin(rad);
+          let ny = Math.cos(rad);
+          const toCenterX = geo.w / 2 - cx;
+          const toCenterY = geo.h / 2 - cy;
+          if (nx * toCenterX + ny * toCenterY < 0) {
+            nx = -nx;
+            ny = -ny;
+          }
+          const offset = 20;
+          const gcx = cx + nx * offset;
+          const gcy = cy + ny * offset;
+
+          markup += drawSegment(
+            gcx - gdx / 2, gcy - gdy / 2,
+            gcx + gdx / 2, gcy + gdy / 2,
+            '#4f86f7', 3.5, 8
+          );
+        }
+
+        el.stageSvg.innerHTML = markup;
+      }
+
+      function scoreRound(guessCm, actualCm) {
+        const err = Math.abs(guessCm - actualCm);
+        if (err < 0.001) return 1000;
+        const scale = 1.2 + 0.22 * actualCm;
+        return Math.max(0, Math.round(1000 * Math.exp(-Math.pow(err / scale, 1.35))));
+      }
+
+      function submitGuess() {
+        const guessCm = Math.max(0.1, Number(parseFloat(el.guessInput.value).toFixed(1)) || state.minCm);
+        const actualCm = state.currentTarget.lengthCm;
+        const diff = Number((guessCm - actualCm).toFixed(1));
+        const absErr = Math.abs(diff);
+        const pts = scoreRound(guessCm, actualCm);
+
+        state.lastGuessCm = guessCm;
+        state.score += pts;
+        state.history.push({ round: state.round, actualCm, guessCm, diff, absErr, pts });
+        state.phase = 'reveal';
+
+        recordGuessStat({
+          actualCm,
+          guessCm,
+          diff,
+          absErr,
+          pts,
+          orient: state.currentTarget.orient
+        });
+
+        el.guessInput.disabled = true;
+        el.guessSlider.disabled = true;
+
+        const sign = diff > 0 ? '+' : '';
+        const diffText = absErr === 0 ? 'Exact match!' : `${sign}${diff.toFixed(1)} cm`;
+        el.resultMain.innerHTML = `Actual: <strong>${actualCm.toFixed(1)} cm</strong> · Guess: <strong>${guessCm.toFixed(1)} cm</strong> (${diffText})`;
+        el.resultPts.textContent = `+${pts.toLocaleString()}`;
+        el.resultPts.style.color = pts >= 850 ? 'var(--green)' : pts >= 600 ? 'var(--amber)' : 'var(--red)';
+        el.resultStrip.classList.add('show');
+
+        updateHeaderBadges();
+        drawStage();
+
+        el.actionBtn.textContent = (state.mode === '10' && state.round >= TOTAL_ROUNDS)
+          ? 'View Final Results'
+          : 'Next Round →';
+      }
+
+      function nextStep() {
+        if (state.phase === 'guess') {
+          submitGuess();
+        } else if (state.phase === 'reveal') {
+          if (state.mode === '10' && state.round >= TOTAL_ROUNDS) {
+            showSummary();
+          } else {
+            state.round += 1;
+            setupRound();
+          }
+        }
+      }
+
+      function getRankTitle(score) {
+        if (score >= 9500) return 'Human laser interferometer.';
+        if (score >= 9000) return 'Human Vernier caliper.';
+        if (score >= 8200) return 'Sharp spatial intuition.';
+        if (score >= 7000) return 'Solid eye for scale.';
+        if (score >= 5500) return 'Decent ballpark estimator.';
+        return 'Keep a ruler handy!';
+      }
+
+      function showSummary() {
+        state.phase = 'summary';
+        syncViews();
+
+        const n = state.history.length || 1;
+        const meanErr = state.history.reduce((s, r) => s + r.absErr, 0) / n;
+        const closest = Math.min(...state.history.map(r => r.absErr));
+        const avgBias = state.history.reduce((s, r) => s + r.diff, 0) / n;
+
+        recordRun10(state.score, meanErr, avgBias);
+
+        el.finalScore.textContent = `${state.score.toLocaleString()} / 10,000`;
+        el.finalRank.textContent = getRankTitle(state.score);
+        el.statMeanErr.textContent = `${meanErr.toFixed(2)} cm`;
+        el.statClosest.textContent = `±${closest.toFixed(1)} cm`;
+        el.statBias.textContent = `${avgBias >= 0 ? '+' : ''}${avgBias.toFixed(2)} cm`;
+
+        el.historyList.innerHTML = state.history.map(r => `
+          <div class="history-row">
+            <span>#${r.round}</span>
+            <span>Act: ${r.actualCm.toFixed(1)} cm</span>
+            <span>You: ${r.guessCm.toFixed(1)} cm</span>
+            <span>+${r.pts}</span>
+          </div>
+        `).join('');
+      }
+
+      // --- LIVE ZOOM & VIEWPORT WATCHER ---
+      function handleViewportChange() {
+        updateCalStatus();
+        if (state.statsOpen) return;
+        if (state.phase === 'cal') {
+          renderCardCal();
+          renderRulerCal();
+        } else if (state.phase === 'guess' || state.phase === 'reveal') {
+          drawStage();
+        }
+      }
+
+      let dprMediaQuery = null;
+      function watchDprChanges() {
+        if (dprMediaQuery) {
+          dprMediaQuery.removeEventListener('change', onDprChange);
+        }
+        dprMediaQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+        dprMediaQuery.addEventListener('change', onDprChange);
+      }
+
+      function onDprChange() {
+        handleViewportChange();
+        watchDprChanges();
+      }
+
+      // --- EVENTS ---
+      el.mode10.addEventListener('click', () => {
+        if (state.mode === '10' && !state.statsOpen) return;
+        state.mode = '10';
+        el.mode10.classList.add('active');
+        el.modeEndless.classList.remove('active');
+        if (state.devicePxPerCm && state.phase !== 'cal') startNewGame();
+      });
+
+      el.modeEndless.addEventListener('click', () => {
+        if (state.mode === 'endless' && !state.statsOpen) return;
+        state.mode = 'endless';
+        el.modeEndless.classList.add('active');
+        el.mode10.classList.remove('active');
+        if (state.devicePxPerCm && state.phase !== 'cal') startNewGame();
+      });
+
+      el.statsBtn.addEventListener('click', () => {
+        if (state.statsOpen) closeStats();
+        else openStats();
+      });
+      el.closeStatsBtn.addEventListener('click', closeStats);
+      el.recalBtn.addEventListener('click', openCalibration);
+
+      el.resetStatsBtn.addEventListener('click', () => {
+        if (el.resetStatsBtn.dataset.armed === '1') {
+          stats = createEmptyStats();
+          saveStats();
+          resetConfirmCancel();
+          renderStatsDashboard();
+        } else {
+          el.resetStatsBtn.dataset.armed = '1';
+          el.resetStatsBtn.textContent = 'Click again to confirm';
+          state.resetConfirmTimer = setTimeout(resetConfirmCancel, 4000);
+        }
+      });
+
+      el.tabCard.addEventListener('click', () => setCalTab('card'));
+      el.tabRuler.addEventListener('click', () => setCalTab('ruler'));
+
+      el.rotateCardBtn.addEventListener('click', () => {
+        state.cardVertical = !state.cardVertical;
+        renderCardCal();
+      });
+
+      el.cardSlider.addEventListener('input', () => {
+        state.tempCssPxPerCm = parseFloat(el.cardSlider.value);
+        renderCardCal();
+      });
+
+      el.cardMinusBtn.addEventListener('click', () => {
+        state.tempCssPxPerCm = Math.max(12, Number((state.tempCssPxPerCm - 0.2).toFixed(1)));
+        el.cardSlider.value = state.tempCssPxPerCm.toFixed(1);
+        renderCardCal();
+      });
+
+      el.cardPlusBtn.addEventListener('click', () => {
+        state.tempCssPxPerCm = Math.min(120, Number((state.tempCssPxPerCm + 0.2).toFixed(1)));
+        el.cardSlider.value = state.tempCssPxPerCm.toFixed(1);
+        renderCardCal();
+      });
+
+      el.saveCardCalBtn.addEventListener('click', () => {
+        saveCalibration(state.tempCssPxPerCm);
+        startNewGame();
+      });
+
+      el.unitCmBtn.addEventListener('click', () => {
+        state.rulerUnit = 'cm';
+        el.unitCmBtn.classList.add('active');
+        el.unitInBtn.classList.remove('active');
+      });
+
+      el.unitInBtn.addEventListener('click', () => {
+        state.rulerUnit = 'in';
+        el.unitInBtn.classList.add('active');
+        el.unitCmBtn.classList.remove('active');
+      });
+
+      el.saveRulerCalBtn.addEventListener('click', handleSaveRulerCal);
+      el.rulerInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleSaveRulerCal();
+      });
+
+      el.guessSlider.addEventListener('input', () => setGuessValue(el.guessSlider.value));
+      el.guessInput.addEventListener('input', () => {
+        const v = parseFloat(el.guessInput.value);
+        if (Number.isFinite(v)) {
+          el.guessSlider.value = Math.max(state.minCm, Math.min(state.maxCm, v));
+          el.secondaryReadout.textContent = `${Math.round(v * 10)} mm · ${(v / 2.54).toFixed(2)} in`;
+        }
+      });
+
+      el.actionBtn.addEventListener('click', nextStep);
+      el.playAgainBtn.addEventListener('click', startNewGame);
+
+      document.addEventListener('keydown', (e) => {
+        if (state.statsOpen) {
+          if (e.key === 'Escape') closeStats();
+          return;
+        }
+        if (e.key === 'Enter' && (state.phase === 'guess' || state.phase === 'reveal')) {
+          e.preventDefault();
+          nextStep();
+        }
+      });
+
+      window.addEventListener('resize', handleViewportChange);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', handleViewportChange);
+      }
+      watchDprChanges();
+
+      // Boot
+      loadStats();
+      const hasSaved = loadCalibration();
+      updateCalStatus();
+      if (hasSaved) {
+        startNewGame();
+      } else {
+        openCalibration();
+      }
+    })();
+  </script>
+</body>
+</html>
