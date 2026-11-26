@@ -6,6 +6,8 @@
 
 📐 [Angle Intuition tester](https://camilakkrause.github.io/angle_intuition) — train your eye by estimating angles and track your error over time.
 
+📏 [Guess the Length](https://camilakkrause.github.io/guess_length) — Estimate the physical length of segments in centimeters, and track your accuracy over time.
+
 🎨 [Guess the RGB](https://camilakkrause.github.io/guessRGB) — look at a color and try to guess its R, G, and B values.
 
 🌈 [Guess the Wavelength](https://camilakkrause.github.io/guess_wavelength) — estimate the wavelength of laser light in nanometers and track your perceptual calibration across the visible spectrum.
